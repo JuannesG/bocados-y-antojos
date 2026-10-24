@@ -8,6 +8,8 @@ import {
     StyleSheet,
 } from "react-native";
 import { supabase } from "../lib/supabase";
+import Selector from "./Selector";
+import { pesos, hoy } from "../lib/formato";
 
 type Material = { id: string; nombre: string; unidad: string };
 type Compra = {
@@ -17,20 +19,32 @@ type Compra = {
     cantidad: number;
     unidad_compra: string;
     total: number;
+    proveedor: string | null;
 };
-
-const pesos = (n: number) => "$" + Number(n).toLocaleString("es-CO");
+type Linea = {
+    materialId: string;
+    cantidad: number;
+    precio: number;
+    unidadCompra: string;
+    equivalencia: number;
+};
 
 export default function RegistroCompras() {
     const [materiales, setMateriales] = useState<Material[]>([]);
     const [compras, setCompras] = useState<Compra[]>([]);
-    const [materialId, setMaterialId] = useState("");
-    const [cantidad, setCantidad] = useState("");
-    const [unidadCompra, setUnidadCompra] = useState("unidad");
-    const [equivalencia, setEquivalencia] = useState("1");
-    const [precio, setPrecio] = useState("");
+
+    const [fecha, setFecha] = useState(hoy());
     const [proveedor, setProveedor] = useState("");
     const [observacion, setObservacion] = useState("");
+
+    const [materialId, setMaterialId] = useState("");
+    const [cantidad, setCantidad] = useState("");
+    const [precio, setPrecio] = useState("");
+    const [porEmpaque, setPorEmpaque] = useState(false);
+    const [unidadCompra, setUnidadCompra] = useState("");
+    const [equivalencia, setEquivalencia] = useState("");
+
+    const [lineas, setLineas] = useState<Linea[]>([]);
     const [error, setError] = useState("");
 
     async function cargar() {
@@ -41,7 +55,7 @@ export default function RegistroCompras() {
 
         const { data: comps } = await supabase
             .from("compras")
-            .select("id, fecha, material_id, cantidad, unidad_compra, total")
+            .select("id, fecha, material_id, cantidad, unidad_compra, total, proveedor")
             .order("fecha", { ascending: false })
             .order("id", { ascending: false })
             .limit(20);
@@ -58,96 +72,99 @@ export default function RegistroCompras() {
     const prec = Number(precio.replace(",", "."));
     const equiv = Number(equivalencia.replace(",", "."));
     const materialElegido = materiales.find((m) => m.id === materialId);
+    const totalCompra = lineas.reduce((suma, l) => suma + l.cantidad * l.precio, 0);
 
     function nombreMaterial(id: string) {
         return materiales.find((m) => m.id === id)?.nombre ?? "—";
     }
+    function unidadMaterial(id: string) {
+        return materiales.find((m) => m.id === id)?.unidad ?? "";
+    }
 
-    async function guardar() {
-        if (!materialId) {
+    function agregarLinea() {
+        if (!materialElegido) {
             setError("Elige un material");
             return;
         }
-        if (!(cant > 0) || !(prec > 0) || !(equiv > 0)) {
-            setError("Cantidad, precio y equivalencia deben ser mayores a 0");
+        if (!(cant > 0) || !(prec > 0)) {
+            setError("La cantidad y el precio deben ser mayores a 0");
+            return;
+        }
+        if (porEmpaque && !(equiv > 0)) {
+            setError("Escribe cuántas unidades trae cada empaque");
             return;
         }
         setError("");
 
-        const { error: fallo } = await supabase.from("compras").insert({
-            material_id: materialId,
-            cantidad: cant,
-            precio_unitario: prec,
-            unidad_compra: unidadCompra.trim() || "unidad",
-            equivalencia: equiv,
-            proveedor: proveedor.trim() || null,
-            observacion: observacion.trim() || null,
-        });
+        setLineas([
+            ...lineas,
+            {
+                materialId: materialElegido.id,
+                cantidad: cant,
+                precio: prec,
+                unidadCompra: porEmpaque
+                    ? unidadCompra.trim() || "paquete"
+                    : materialElegido.unidad,
+                equivalencia: porEmpaque ? equiv : 1,
+            },
+        ]);
+
+        setMaterialId("");
+        setCantidad("");
+        setPrecio("");
+        setPorEmpaque(false);
+        setUnidadCompra("");
+        setEquivalencia("");
+    }
+
+    function quitarLinea(posicion: number) {
+        setLineas(lineas.filter((_, i) => i !== posicion));
+    }
+
+    async function guardar() {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+            setError("La fecha debe tener el formato AAAA-MM-DD");
+            return;
+        }
+        if (lineas.length === 0) {
+            setError("Agrega al menos un material a la compra");
+            return;
+        }
+        setError("");
+
+        const { error: fallo } = await supabase.from("compras").insert(
+            lineas.map((l) => ({
+                fecha,
+                material_id: l.materialId,
+                cantidad: l.cantidad,
+                precio_unitario: l.precio,
+                unidad_compra: l.unidadCompra,
+                equivalencia: l.equivalencia,
+                proveedor: proveedor.trim() || null,
+                observacion: observacion.trim() || null,
+            }))
+        );
 
         if (fallo) {
             setError("No se pudo guardar la compra");
             return;
         }
 
-        setCantidad("");
-        setPrecio("");
+        setLineas([]);
         setProveedor("");
         setObservacion("");
-        setUnidadCompra("unidad");
-        setEquivalencia("1");
+        setFecha(hoy());
         cargar();
     }
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
-            <Text style={styles.etiqueta}>Material</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {materiales.map((m) => (
-                    <Pressable
-                        key={m.id}
-                        style={[styles.chip, m.id === materialId && styles.chipActivo]}
-                        onPress={() => setMaterialId(m.id)}
-                    >
-                        <Text
-                            style={[styles.chipTexto, m.id === materialId && styles.chipTextoActivo]}
-                        >
-                            {m.nombre}
-                        </Text>
-                    </Pressable>
-                ))}
-            </ScrollView>
-
+            <Text style={styles.subtitulo}>Datos de la compra</Text>
             <TextInput
                 style={styles.input}
-                placeholder="Cantidad comprada (ej. 3)"
-                value={cantidad}
-                onChangeText={setCantidad}
-                keyboardType="numeric"
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Unidad de compra (ej. paquete, kg, bandeja)"
-                value={unidadCompra}
-                onChangeText={setUnidadCompra}
-                autoCapitalize="none"
-            />
-            <TextInput
-                style={styles.input}
-                placeholder={
-                    materialElegido
-                        ? `Cuántas ${materialElegido.unidad} trae cada ${unidadCompra || "unidad"}`
-                        : "Equivalencia"
-                }
-                value={equivalencia}
-                onChangeText={setEquivalencia}
-                keyboardType="numeric"
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Precio por cada unidad de compra"
-                value={precio}
-                onChangeText={setPrecio}
-                keyboardType="numeric"
+                placeholder="Fecha (AAAA-MM-DD)"
+                value={fecha}
+                onChangeText={setFecha}
             />
             <TextInput
                 style={styles.input}
@@ -162,13 +179,90 @@ export default function RegistroCompras() {
                 onChangeText={setObservacion}
             />
 
-            {cant > 0 && prec > 0 ? (
-                <Text style={styles.resumen}>
-                    Total: {pesos(cant * prec)}
-                    {equiv > 0 && materialElegido
-                        ? ` · entran ${cant * equiv} ${materialElegido.unidad}`
-                        : ""}
+            <Text style={styles.subtitulo}>Materiales comprados</Text>
+            <Selector
+                valor={materialId}
+                onCambio={setMaterialId}
+                placeholder="Elige un material"
+                opciones={materiales.map((m) => ({ valor: m.id, etiqueta: m.nombre }))}
+            />
+            <TextInput
+                style={styles.input}
+                placeholder={
+                    materialElegido
+                        ? `Cantidad (en ${porEmpaque ? unidadCompra || "empaques" : materialElegido.unidad})`
+                        : "Cantidad"
+                }
+                value={cantidad}
+                onChangeText={setCantidad}
+                keyboardType="numeric"
+            />
+            <TextInput
+                style={styles.input}
+                placeholder={
+                    porEmpaque ? "Precio de cada empaque" : "Precio de cada unidad"
+                }
+                value={precio}
+                onChangeText={setPrecio}
+                keyboardType="numeric"
+            />
+
+            <Pressable
+                style={styles.enlace}
+                onPress={() => setPorEmpaque(!porEmpaque)}
+            >
+                <Text style={styles.enlaceTexto}>
+                    {porEmpaque ? "✓ Compro por paquete, kilo, etc." : "+ Compro por paquete, kilo, etc."}
                 </Text>
+            </Pressable>
+
+            {porEmpaque ? (
+                <View>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Empaque (ej. paquete, kg, caja)"
+                        value={unidadCompra}
+                        onChangeText={setUnidadCompra}
+                        autoCapitalize="none"
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder={
+                            materialElegido
+                                ? `Cuántas ${materialElegido.unidad} trae cada ${unidadCompra || "empaque"}`
+                                : "Cuántas unidades trae cada empaque"
+                        }
+                        value={equivalencia}
+                        onChangeText={setEquivalencia}
+                        keyboardType="numeric"
+                    />
+                </View>
+            ) : null}
+
+            <Pressable style={styles.botonSecundario} onPress={agregarLinea}>
+                <Text style={styles.botonSecundarioTexto}>Agregar material</Text>
+            </Pressable>
+
+            {lineas.map((l, posicion) => (
+                <View key={posicion} style={styles.linea}>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.nombre}>{nombreMaterial(l.materialId)}</Text>
+                        <Text style={styles.detalle}>
+                            {l.cantidad} {l.unidadCompra} × {pesos(l.precio)}
+                            {l.equivalencia !== 1
+                                ? ` · entran ${l.cantidad * l.equivalencia} ${unidadMaterial(l.materialId)}`
+                                : ""}
+                        </Text>
+                    </View>
+                    <Text style={styles.total}>{pesos(l.cantidad * l.precio)}</Text>
+                    <Pressable onPress={() => quitarLinea(posicion)}>
+                        <Text style={styles.quitar}>✕</Text>
+                    </Pressable>
+                </View>
+            ))}
+
+            {lineas.length > 0 ? (
+                <Text style={styles.resumen}>Total de la compra: {pesos(totalCompra)}</Text>
             ) : null}
 
             <Pressable style={styles.boton} onPress={guardar}>
@@ -176,16 +270,17 @@ export default function RegistroCompras() {
             </Pressable>
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            <Text style={styles.subtitulo}>Últimas compras</Text>
+            <Text style={[styles.subtitulo, { marginTop: 32 }]}>Últimas compras</Text>
             {compras.length === 0 ? (
                 <Text style={styles.vacio}>Aún no hay compras</Text>
             ) : (
                 compras.map((c) => (
                     <View key={c.id} style={styles.fila}>
-                        <View>
+                        <View style={{ flex: 1 }}>
                             <Text style={styles.nombre}>{nombreMaterial(c.material_id)}</Text>
                             <Text style={styles.detalle}>
                                 {c.fecha} · {Number(c.cantidad)} {c.unidad_compra}
+                                {c.proveedor ? ` · ${c.proveedor}` : ""}
                             </Text>
                         </View>
                         <Text style={styles.total}>{pesos(c.total)}</Text>
@@ -198,17 +293,7 @@ export default function RegistroCompras() {
 
 const styles = StyleSheet.create({
     container: { padding: 16, backgroundColor: "#FFF3E0" },
-    etiqueta: { fontSize: 14, color: "#4E2E1E", marginBottom: 8 },
-    chip: {
-        backgroundColor: "white",
-        borderRadius: 20,
-        paddingVertical: 8,
-        paddingHorizontal: 14,
-        marginRight: 8,
-    },
-    chipActivo: { backgroundColor: "#FF8A00" },
-    chipTexto: { color: "#4E2E1E" },
-    chipTextoActivo: { fontWeight: "bold" },
+    subtitulo: { fontSize: 18, fontWeight: "bold", color: "#4E2E1E", marginTop: 12 },
     input: {
         backgroundColor: "white",
         borderRadius: 12,
@@ -216,32 +301,43 @@ const styles = StyleSheet.create({
         marginTop: 12,
         fontSize: 16,
     },
-    resumen: { marginTop: 16, color: "#4E2E1E", fontWeight: "bold" },
+    enlace: { marginTop: 14 },
+    enlaceTexto: { color: "#4E2E1E", fontWeight: "bold" },
     boton: {
         backgroundColor: "#FF8A00",
+        borderRadius: 12,
+        padding: 14,
+        marginTop: 20,
+        alignItems: "center",
+    },
+    botonTexto: { color: "#4E2E1E", fontSize: 16, fontWeight: "bold" },
+    botonSecundario: {
+        backgroundColor: "#4E2E1E",
         borderRadius: 12,
         padding: 14,
         marginTop: 16,
         alignItems: "center",
     },
-    botonTexto: { color: "#4E2E1E", fontSize: 16, fontWeight: "bold" },
-    error: { color: "#E63946", marginTop: 12, textAlign: "center" },
-    subtitulo: {
-        fontSize: 18,
-        fontWeight: "bold",
-        color: "#4E2E1E",
-        marginTop: 28,
-        marginBottom: 12,
+    botonSecundarioTexto: { color: "#FFF3E0", fontSize: 16, fontWeight: "bold" },
+    linea: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "white",
+        borderRadius: 12,
+        padding: 12,
+        marginTop: 8,
     },
-    vacio: { color: "#4E2E1E", textAlign: "center" },
+    quitar: { color: "#E63946", fontSize: 18, paddingHorizontal: 8 },
+    resumen: { marginTop: 16, color: "#4E2E1E", fontWeight: "bold", fontSize: 18 },
+    error: { color: "#E63946", marginTop: 12, textAlign: "center" },
+    vacio: { color: "#4E2E1E", textAlign: "center", marginTop: 12 },
     fila: {
         flexDirection: "row",
-        justifyContent: "space-between",
         alignItems: "center",
         backgroundColor: "white",
         borderRadius: 12,
         padding: 14,
-        marginBottom: 8,
+        marginTop: 8,
     },
     nombre: { fontSize: 16, color: "#4E2E1E" },
     detalle: { fontSize: 13, color: "#7A5A45", marginTop: 2 },
