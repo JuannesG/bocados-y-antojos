@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
     View,
     Text,
@@ -40,9 +42,11 @@ export default function MaterialesScreen() {
         setCargando(false);
     }
 
-    useEffect(() => {
-        cargar();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            cargar();
+        }, [])
+    );
 
     async function agregar() {
         if (!nombre.trim() || !unidad.trim()) {
