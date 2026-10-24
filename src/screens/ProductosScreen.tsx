@@ -10,7 +10,7 @@ import {
 import { supabase } from "../lib/supabase";
 import Selector from "../components/Selector";
 
-type Material = { id: string; nombre: string; unidad: string };
+type Material = { id: string; nombre: string; unidad: string; categoria: string; };
 type Producto = {
     id: string;
     nombre: string;
@@ -38,7 +38,7 @@ export default function ProductosScreen() {
 
     async function cargar() {
         const [mats, prods, costosProd, costosMat] = await Promise.all([
-            supabase.from("materiales").select("id, nombre, unidad").order("nombre"),
+            supabase.from("materiales").select("id, nombre, unidad, categoria").order("nombre"),
             supabase
                 .from("productos")
                 .select("id, nombre, tipo, precio_venta")
@@ -90,6 +90,14 @@ export default function ProductosScreen() {
         (suma, i) => suma + i.cantidad * (costoMaterial[i.materialId] ?? 0),
         0
     );
+
+    const opcionesComprado = materiales
+        .filter((m) => m.categoria === "comprado")
+        .map((m) => ({ valor: m.id, etiqueta: m.nombre }));
+
+    const opcionesIngredientes = materiales
+        .filter((m) => m.categoria === "ingrediente")
+        .map((m) => ({ valor: m.id, etiqueta: m.nombre }));
 
     function cambiarTipo(nuevo: "preparado" | "comprado") {
         setTipo(nuevo);
@@ -220,7 +228,7 @@ export default function ProductosScreen() {
                                 valor={materialId}
                                 onCambio={setMaterialId}
                                 placeholder="Elige el material (ej. bandeja)"
-                                opciones={materiales.map((m) => ({ valor: m.id, etiqueta: m.nombre }))}
+                                opciones={opcionesComprado}
                             />
                         </>
                     ) : (
@@ -230,7 +238,7 @@ export default function ProductosScreen() {
                                 valor={materialId}
                                 onCambio={setMaterialId}
                                 placeholder="Elige un ingrediente"
-                                opciones={materiales.map((m) => ({ valor: m.id, etiqueta: m.nombre }))}
+                                opciones={opcionesIngredientes}
                             />
                             <TextInput
                                 style={styles.input}

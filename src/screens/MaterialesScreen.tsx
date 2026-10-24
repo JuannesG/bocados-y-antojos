@@ -24,6 +24,7 @@ export default function MaterialesScreen() {
     const [error, setError] = useState("");
     const [nombre, setNombre] = useState("");
     const [unidad, setUnidad] = useState("");
+    const [categoria, setCategoria] = useState<"ingrediente" | "comprado">("ingrediente");
 
     async function cargar() {
         const { data, error: fallo } = await supabase
@@ -52,7 +53,11 @@ export default function MaterialesScreen() {
 
         const { error: fallo } = await supabase
             .from("materiales")
-            .insert({ nombre: nombre.trim(), unidad: unidad.trim().toLowerCase() });
+            .insert({
+                nombre: nombre.trim(),
+                unidad: unidad.trim().toLowerCase(),
+                categoria,
+            });
 
         if (fallo) {
             setError("No se pudo guardar el material");
@@ -80,6 +85,20 @@ export default function MaterialesScreen() {
                     onChangeText={setUnidad}
                     autoCapitalize="none"
                 />
+                <View style={styles.selector}>
+                    <Pressable
+                        style={[styles.opcion, categoria === "ingrediente" && styles.opcionActiva]}
+                        onPress={() => setCategoria("ingrediente")}
+                    >
+                        <Text style={styles.opcionTexto}>Ingrediente</Text>
+                    </Pressable>
+                    <Pressable
+                        style={[styles.opcion, categoria === "comprado" && styles.opcionActiva]}
+                        onPress={() => setCategoria("comprado")}
+                    >
+                        <Text style={styles.opcionTexto}>Comprado hecho</Text>
+                    </Pressable>
+                </View>
                 <Pressable style={styles.boton} onPress={agregar}>
                     <Text style={styles.botonTexto}>Añadir material</Text>
                 </Pressable>
@@ -144,4 +163,14 @@ const styles = StyleSheet.create({
     nombre: { fontSize: 16, color: "#4E2E1E" },
     stock: { fontSize: 16, fontWeight: "bold", color: "#4E2E1E" },
     stockBajo: { color: "#E63946" },
+    selector: {
+        flexDirection: "row",
+        marginTop: 12,
+        backgroundColor: "white",
+        borderRadius: 12,
+        padding: 4,
+    },
+    opcion: { flex: 1, padding: 10, borderRadius: 10, alignItems: "center" },
+    opcionActiva: { backgroundColor: "#FF8A00" },
+    opcionTexto: { color: "#4E2E1E", fontWeight: "bold" },
 });
