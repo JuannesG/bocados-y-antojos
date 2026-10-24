@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
+import {
+    View,
+    Text,
+    TextInput,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+} from "react-native";
 
 type Opcion = { valor: string; etiqueta: string };
 
@@ -10,13 +17,34 @@ type Props = {
     placeholder: string;
 };
 
+function limpiar(texto: string) {
+    return texto
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+}
+
 export default function Selector({ valor, onCambio, opciones, placeholder }: Props) {
     const [abierto, setAbierto] = useState(false);
+    const [busqueda, setBusqueda] = useState("");
+
     const elegida = opciones.find((o) => o.valor === valor);
+    const filtradas = opciones.filter((o) =>
+        limpiar(o.etiqueta).includes(limpiar(busqueda))
+    );
+
+    function cerrar() {
+        setAbierto(false);
+        setBusqueda("");
+    }
 
     return (
         <View style={styles.contenedor}>
-            <Pressable style={styles.campo} onPress={() => setAbierto(!abierto)}>
+            <Pressable
+                style={styles.campo}
+                onPress={() => (abierto ? cerrar() : setAbierto(true))}
+            >
                 <Text style={elegida ? styles.texto : styles.placeholder}>
                     {elegida ? elegida.etiqueta : placeholder}
                 </Text>
@@ -25,19 +53,34 @@ export default function Selector({ valor, onCambio, opciones, placeholder }: Pro
 
             {abierto ? (
                 <View style={styles.lista}>
-                    <ScrollView style={{ maxHeight: 220 }} nestedScrollEnabled>
-                        {opciones.map((o) => (
-                            <Pressable
-                                key={o.valor}
-                                style={styles.opcion}
-                                onPress={() => {
-                                    onCambio(o.valor);
-                                    setAbierto(false);
-                                }}
-                            >
-                                <Text style={styles.texto}>{o.etiqueta}</Text>
-                            </Pressable>
-                        ))}
+                    <TextInput
+                        style={styles.buscador}
+                        placeholder="Escribe para buscar..."
+                        value={busqueda}
+                        onChangeText={setBusqueda}
+                        autoFocus
+                    />
+                    <ScrollView
+                        style={{ maxHeight: 220 }}
+                        nestedScrollEnabled
+                        keyboardShouldPersistTaps="handled"
+                    >
+                        {filtradas.length === 0 ? (
+                            <Text style={styles.vacio}>Sin resultados</Text>
+                        ) : (
+                            filtradas.map((o) => (
+                                <Pressable
+                                    key={o.valor}
+                                    style={styles.opcion}
+                                    onPress={() => {
+                                        onCambio(o.valor);
+                                        cerrar();
+                                    }}
+                                >
+                                    <Text style={styles.texto}>{o.etiqueta}</Text>
+                                </Pressable>
+                            ))
+                        )}
                     </ScrollView>
                 </View>
             ) : null}
@@ -65,9 +108,17 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "#E5E5E5",
     },
+    buscador: {
+        padding: 12,
+        fontSize: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: "#F1E6D6",
+        color: "#4E2E1E",
+    },
     opcion: {
         padding: 14,
         borderBottomWidth: 1,
         borderBottomColor: "#F1E6D6",
     },
+    vacio: { padding: 14, color: "#9A8577" },
 });

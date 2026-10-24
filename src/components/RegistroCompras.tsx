@@ -12,14 +12,18 @@ import Selector from "./Selector";
 import { pesos, hoy } from "../lib/formato";
 
 type Material = { id: string; nombre: string; unidad: string };
-type Compra = {
-    id: number;
+type Factura = {
+    id: string;
     fecha: string;
+    proveedor: string;
+    observacion: string;
+};
+type ItemFactura = {
+    factura_id: string;
     material_id: string;
     cantidad: number;
     unidad_compra: string;
     total: number;
-    proveedor: string | null;
 };
 type Linea = {
     materialId: string;
@@ -50,7 +54,9 @@ function unidadesDeCompra(unidad: string): OpcionUnidad[] {
 
 export default function RegistroCompras() {
     const [materiales, setMateriales] = useState<Material[]>([]);
-    const [compras, setCompras] = useState<Compra[]>([]);
+    const [facturas, setFacturas] = useState<Factura[]>([]);
+    const [items, setItems] = useState<ItemFactura[]>([]);
+    const [abierta, setAbierta] = useState("");
 
     const [fecha, setFecha] = useState(hoy());
     const [proveedor, setProveedor] = useState("");
@@ -70,15 +76,26 @@ export default function RegistroCompras() {
             .select("id, nombre, unidad")
             .order("nombre");
 
-        const { data: comps } = await supabase
-            .from("compras")
-            .select("id, fecha, material_id, cantidad, unidad_compra, total, proveedor")
+        const { data: facs } = await supabase
+            .from("facturas")
+            .select("id, fecha, proveedor, observacion")
             .order("fecha", { ascending: false })
-            .order("id", { ascending: false })
+            .order("created_at", { ascending: false })
             .limit(20);
 
+        const ids = (facs ?? []).map((f) => f.id);
+        let detalle: ItemFactura[] = [];
+        if (ids.length > 0) {
+            const { data } = await supabase
+                .from("compras")
+                .select("factura_id, material_id, cantidad, unidad_compra, total")
+                .in("factura_id", ids);
+            detalle = data ?? [];
+        }
+
         setMateriales(mats ?? []);
-        setCompras(comps ?? []);
+        setFacturas(facs ?? []);
+        setItems(detalle);
     }
 
     useEffect(() => {
@@ -99,6 +116,11 @@ export default function RegistroCompras() {
     }
     function unidadMaterial(id: string) {
         return materiales.find((m) => m.id === id)?.unidad ?? "";
+    }
+    function totalDe(facturaId: string) {
+        return items
+            .filter((i) => i.factura_id === facturaId)
+            .reduce((suma, i) => suma + Number(i.total), 0);
     }
 
     function elegirMaterial(id: string) {
@@ -144,27 +166,50 @@ export default function RegistroCompras() {
             setError("La fecha debe tener el formato AAAA-MM-DD");
             return;
         }
+        if (!proveedor.trim()) {
+            setError("Escribe el lugar o proveedor");
+            return;
+        }
+        if (!observacion.trim()) {
+            setError("Escribe una observación");
+            return;
+        }
         if (lineas.length === 0) {
             setError("Agrega al menos un material a la compra");
             return;
         }
         setError("");
 
+        const { data: factura, error: falloFactura } = await supabase
+            .from("facturas")
+            .insert({
+                fecha,
+                proveedor: proveedor.trim(),
+                observacion: observacion.trim(),
+            })
+            .select("id")
+            .single();
+
+        if (falloFactura || !factura) {
+            setError("No se pudo guardar la factura");
+            return;
+        }
+
         const { error: fallo } = await supabase.from("compras").insert(
             lineas.map((l) => ({
+                factura_id: factura.id,
                 fecha,
                 material_id: l.materialId,
                 cantidad: l.cantidad,
                 precio_unitario: l.totalPagado / l.cantidad,
                 unidad_compra: l.unidadCompra,
                 equivalencia: l.equivalencia,
-                proveedor: proveedor.trim() || null,
-                observacion: observacion.trim() || null,
             }))
         );
 
         if (fallo) {
-            setError("No se pudo guardar la compra");
+            await supabase.from("facturas").delete().eq("id", factura.id);
+            setError("No se pudieron guardar los materiales de la compra");
             return;
         }
 
@@ -186,13 +231,13 @@ export default function RegistroCompras() {
             />
             <TextInput
                 style={styles.input}
-                placeholder="Lugar o proveedor"
+                placeholder="Lugar o proveedor (obligatorio)"
                 value={proveedor}
                 onChangeText={setProveedor}
             />
             <TextInput
                 style={styles.input}
-                placeholder="Observación (opcional)"
+                placeholder="Observación (obligatoria)"
                 value={observacion}
                 onChangeText={setObservacion}
             />
@@ -268,20 +313,38 @@ export default function RegistroCompras() {
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
             <Text style={[styles.subtitulo, { marginTop: 32 }]}>Últimas compras</Text>
-            {compras.length === 0 ? (
+            {facturas.length === 0 ? (
                 <Text style={styles.vacio}>Aún no hay compras</Text>
             ) : (
-                compras.map((c) => (
-                    <View key={c.id} style={styles.fila}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.nombre}>{nombreMaterial(c.material_id)}</Text>
-                            <Text style={styles.detalle}>
-                                {c.fecha} · {Number(c.cantidad)} {c.unidad_compra}
-                                {c.proveedor ? ` · ${c.proveedor}` : ""}
-                            </Text>
+                facturas.map((f) => (
+                    <Pressable
+                        key={f.id}
+                        style={styles.tarjeta}
+                        onPress={() => setAbierta(abierta === f.id ? "" : f.id)}
+                    >
+                        <View style={styles.filaSuperior}>
+                            <Text style={styles.nombre}>{f.proveedor}</Text>
+                            <Text style={styles.total}>{pesos(totalDe(f.id))}</Text>
                         </View>
-                        <Text style={styles.total}>{pesos(c.total)}</Text>
-                    </View>
+                        <Text style={styles.detalle}>{f.observacion}</Text>
+                        <Text style={styles.detalle}>{f.fecha}</Text>
+
+                        {abierta === f.id ? (
+                            <View style={styles.detalleAbierto}>
+                                {items
+                                    .filter((i) => i.factura_id === f.id)
+                                    .map((i, posicion) => (
+                                        <View key={posicion} style={styles.filaDetalle}>
+                                            <Text style={styles.detalleTexto}>
+                                                {nombreMaterial(i.material_id)} · {Number(i.cantidad)}{" "}
+                                                {i.unidad_compra}
+                                            </Text>
+                                            <Text style={styles.detalleTexto}>{pesos(i.total)}</Text>
+                                        </View>
+                                    ))}
+                            </View>
+                        ) : null}
+                    </Pressable>
                 ))
             )}
         </ScrollView>
@@ -336,15 +399,26 @@ const styles = StyleSheet.create({
     resumen: { marginTop: 16, color: "#4E2E1E", fontWeight: "bold", fontSize: 18 },
     error: { color: "#E63946", marginTop: 12, textAlign: "center" },
     vacio: { color: "#4E2E1E", textAlign: "center", marginTop: 12 },
-    fila: {
-        flexDirection: "row",
-        alignItems: "center",
+    tarjeta: {
         backgroundColor: "white",
         borderRadius: 12,
         padding: 14,
         marginTop: 8,
     },
-    nombre: { fontSize: 16, color: "#4E2E1E" },
+    filaSuperior: { flexDirection: "row", justifyContent: "space-between" },
+    detalleAbierto: {
+        marginTop: 12,
+        paddingTop: 10,
+        borderTopWidth: 1,
+        borderTopColor: "#E5E5E5",
+    },
+    filaDetalle: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginTop: 4,
+    },
+    detalleTexto: { fontSize: 14, color: "#4E2E1E" },
+    nombre: { fontSize: 16, color: "#4E2E1E", fontWeight: "bold" },
     detalle: { fontSize: 13, color: "#7A5A45", marginTop: 2 },
     total: { fontSize: 16, fontWeight: "bold", color: "#4E2E1E" },
 });
