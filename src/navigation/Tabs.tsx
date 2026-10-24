@@ -4,7 +4,6 @@ import InicioScreen from "../screens/InicioScreen";
 import PedidosScreen from "../screens/PedidosScreen";
 import ProductosScreen from "../screens/ProductosScreen";
 import ReportesScreen from "../screens/ReportesScreen";
-import MaterialesScreen from "../screens/MaterialesScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -24,7 +23,6 @@ export default function Tabs() {
             <Tab.Screen name="Pedidos" component={PedidosScreen} />
             <Tab.Screen name="Compras" component={ComprasScreen} />
             <Tab.Screen name="Reportes" component={ReportesScreen} />
-            <Tab.Screen name="Materiales" component={MaterialesScreen} />
         </Tab.Navigator>
     );
 }
