@@ -8,6 +8,7 @@ import {
     StyleSheet,
 } from "react-native";
 import { supabase } from "../lib/supabase";
+import Selector from "./Selector";
 
 type Cliente = { id: string; nombre: string };
 type Producto = { id: string; nombre: string; precio_venta: number };
@@ -158,20 +159,15 @@ export default function NuevoPedido({ onGuardado }: Props) {
     return (
         <View>
             <Text style={styles.etiqueta}>Cliente</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {clientes.map((c) => (
-                    <Pressable
-                        key={c.id}
-                        style={[styles.chip, c.id === clienteId && styles.chipActivo]}
-                        onPress={() => {
-                            setClienteId(c.id);
-                            setClienteNuevo("");
-                        }}
-                    >
-                        <Text style={styles.chipTexto}>{c.nombre}</Text>
-                    </Pressable>
-                ))}
-            </ScrollView>
+            <Selector
+                valor={clienteId}
+                onCambio={(id) => {
+                    setClienteId(id);
+                    setClienteNuevo("");
+                }}
+                placeholder="Elige un cliente"
+                opciones={clientes.map((c) => ({ valor: c.id, etiqueta: c.nombre }))}
+            />
             <TextInput
                 style={styles.input}
                 placeholder="O escribe un cliente nuevo"
@@ -189,18 +185,16 @@ export default function NuevoPedido({ onGuardado }: Props) {
                 onChangeText={setFecha}
             />
 
-            <Text style={styles.etiqueta}>Productos</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {productos.map((p) => (
-                    <Pressable
-                        key={p.id}
-                        style={[styles.chip, p.id === productoId && styles.chipActivo]}
-                        onPress={() => setProductoId(p.id)}
-                    >
-                        <Text style={styles.chipTexto}>{p.nombre}</Text>
-                    </Pressable>
-                ))}
-            </ScrollView>
+            <Text style={styles.etiqueta}>Productos del pedido</Text>
+            <Selector
+                valor={productoId}
+                onCambio={setProductoId}
+                placeholder="Elige un producto"
+                opciones={productos.map((p) => ({
+                    valor: p.id,
+                    etiqueta: `${p.nombre} · ${pesos(p.precio_venta)}`,
+                }))}
+            />
             <TextInput
                 style={styles.input}
                 placeholder="Cantidad"
@@ -209,7 +203,7 @@ export default function NuevoPedido({ onGuardado }: Props) {
                 keyboardType="numeric"
             />
             <Pressable style={styles.botonSecundario} onPress={anadirProducto}>
-                <Text style={styles.botonSecundarioTexto}>Añadir al pedido</Text>
+                <Text style={styles.botonSecundarioTexto}>Agregar Producto</Text>
             </Pressable>
 
             {items.map((item, posicion) => (

@@ -8,6 +8,7 @@ import {
     StyleSheet,
 } from "react-native";
 import { supabase } from "../lib/supabase";
+import Selector from "../components/Selector";
 
 type Material = { id: string; nombre: string; unidad: string };
 type Producto = {
@@ -78,10 +79,24 @@ export default function ProductosScreen() {
         return materiales.find((x) => x.id === id)?.unidad ?? "";
     }
 
-    const costoEstimado = ingredientes.reduce(
+    const receta: Ingrediente[] =
+        tipo === "comprado"
+            ? materialId
+                ? [{ materialId, cantidad: 1 }]
+                : []
+            : ingredientes;
+
+    const costoEstimado = receta.reduce(
         (suma, i) => suma + i.cantidad * (costoMaterial[i.materialId] ?? 0),
         0
     );
+
+    function cambiarTipo(nuevo: "preparado" | "comprado") {
+        setTipo(nuevo);
+        setMaterialId("");
+        setCantidadIng("");
+        setIngredientes([]);
+    }
 
     function anadirIngrediente() {
         if (!materialId) {
@@ -115,8 +130,8 @@ export default function ProductosScreen() {
             setError("Escribe un precio de venta mayor a 0");
             return;
         }
-        if (ingredientes.length === 0) {
-            setError("Añade al menos un ingrediente");
+        if (receta.length === 0) {
+            setError("Añade la receta del producto");
             return;
         }
         setError("");
@@ -133,7 +148,7 @@ export default function ProductosScreen() {
         }
 
         const { error: falloReceta } = await supabase.from("recetas").insert(
-            ingredientes.map((i) => ({
+            receta.map((i) => ({
                 producto_id: nuevo.id,
                 material_id: i.materialId,
                 cantidad: i.cantidad,
@@ -150,6 +165,7 @@ export default function ProductosScreen() {
         setPrecio("");
         setTipo("preparado");
         setIngredientes([]);
+        setMaterialId("");
         setFormAbierto(false);
         cargar();
     }
@@ -177,13 +193,13 @@ export default function ProductosScreen() {
                     <View style={styles.selector}>
                         <Pressable
                             style={[styles.opcion, tipo === "preparado" && styles.opcionActiva]}
-                            onPress={() => setTipo("preparado")}
+                            onPress={() => cambiarTipo("preparado")}
                         >
                             <Text style={styles.opcionTexto}>Preparado</Text>
                         </Pressable>
                         <Pressable
                             style={[styles.opcion, tipo === "comprado" && styles.opcionActiva]}
-                            onPress={() => setTipo("comprado")}
+                            onPress={() => cambiarTipo("comprado")}
                         >
                             <Text style={styles.opcionTexto}>Comprado hecho</Text>
                         </Pressable>
@@ -197,47 +213,55 @@ export default function ProductosScreen() {
                         keyboardType="numeric"
                     />
 
-                    <Text style={styles.etiqueta}>Receta: elige un material</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        {materiales.map((m) => (
-                            <Pressable
-                                key={m.id}
-                                style={[styles.chip, m.id === materialId && styles.chipActivo]}
-                                onPress={() => setMaterialId(m.id)}
-                            >
-                                <Text style={styles.chipTexto}>{m.nombre}</Text>
+                    {tipo === "comprado" ? (
+                        <>
+                            <Text style={styles.etiqueta}>Material que compras hecho</Text>
+                            <Selector
+                                valor={materialId}
+                                onCambio={setMaterialId}
+                                placeholder="Elige el material (ej. bandeja)"
+                                opciones={materiales.map((m) => ({ valor: m.id, etiqueta: m.nombre }))}
+                            />
+                        </>
+                    ) : (
+                        <>
+                            <Text style={styles.etiqueta}>Ingredientes de la receta</Text>
+                            <Selector
+                                valor={materialId}
+                                onCambio={setMaterialId}
+                                placeholder="Elige un ingrediente"
+                                opciones={materiales.map((m) => ({ valor: m.id, etiqueta: m.nombre }))}
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder={
+                                    materialId
+                                        ? `Cantidad por unidad (en ${unidadMaterial(materialId)})`
+                                        : "Cantidad por unidad"
+                                }
+                                value={cantidadIng}
+                                onChangeText={setCantidadIng}
+                                keyboardType="numeric"
+                            />
+                            <Pressable style={styles.botonSecundario} onPress={anadirIngrediente}>
+                                <Text style={styles.botonSecundarioTexto}>Agregar ingrediente</Text>
                             </Pressable>
-                        ))}
-                    </ScrollView>
 
-                    <TextInput
-                        style={styles.input}
-                        placeholder={
-                            materialId
-                                ? `Cantidad por unidad (en ${unidadMaterial(materialId)})`
-                                : "Cantidad por unidad"
-                        }
-                        value={cantidadIng}
-                        onChangeText={setCantidadIng}
-                        keyboardType="numeric"
-                    />
-                    <Pressable style={styles.botonSecundario} onPress={anadirIngrediente}>
-                        <Text style={styles.botonSecundarioTexto}>Añadir ingrediente</Text>
-                    </Pressable>
+                            {ingredientes.map((i) => (
+                                <View key={i.materialId} style={styles.ingrediente}>
+                                    <Text style={styles.nombre}>
+                                        {nombreMaterial(i.materialId)}: {i.cantidad}{" "}
+                                        {unidadMaterial(i.materialId)}
+                                    </Text>
+                                    <Pressable onPress={() => quitarIngrediente(i.materialId)}>
+                                        <Text style={styles.quitar}>✕</Text>
+                                    </Pressable>
+                                </View>
+                            ))}
+                        </>
+                    )}
 
-                    {ingredientes.map((i) => (
-                        <View key={i.materialId} style={styles.ingrediente}>
-                            <Text style={styles.nombre}>
-                                {nombreMaterial(i.materialId)}: {i.cantidad}{" "}
-                                {unidadMaterial(i.materialId)}
-                            </Text>
-                            <Pressable onPress={() => quitarIngrediente(i.materialId)}>
-                                <Text style={styles.quitar}>✕</Text>
-                            </Pressable>
-                        </View>
-                    ))}
-
-                    {ingredientes.length > 0 ? (
+                    {receta.length > 0 ? (
                         <Text style={styles.resumen}>
                             Costo estimado por unidad: {pesos(costoEstimado)}
                         </Text>

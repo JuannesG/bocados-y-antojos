@@ -163,40 +163,43 @@ export default function PedidosScreen() {
                 <Text style={styles.vacio}>Aún no hay pedidos</Text>
             ) : (
                 pedidos.map((p) => (
-                    <Pressable
-                        key={p.pedido_id}
-                        style={styles.tarjeta}
-                        onPress={() => {
-                            setAbierto(abierto === p.pedido_id ? "" : p.pedido_id);
-                            setMonto("");
-                        }}
-                    >
-                        <View style={styles.filaSuperior}>
-                            <Text style={styles.cliente}>{p.cliente}</Text>
-                            <Text style={styles.total}>{pesos(p.total)}</Text>
-                        </View>
-                        <Text style={styles.detalle}>{detalle[p.pedido_id] ?? ""}</Text>
-                        <Text style={styles.detalle}>
-                            Entrega: {p.fecha_entrega ?? "sin fecha"}
-                            {Number(p.saldo) > 0 && p.estado_pedido !== "cancelado"
-                                ? ` · Debe ${pesos(p.saldo)}`
-                                : ""}
-                        </Text>
-                        <View style={styles.badges}>
-                            <Badge
-                                texto={p.estado_pedido}
-                                tono={tonoPedido[p.estado_pedido] ?? "neutro"}
-                            />
-                            <Badge
-                                texto={p.estado_pago}
-                                tono={tonoPago[p.estado_pago] ?? "rojo"}
-                            />
-                        </View>
+                    <View key={p.pedido_id} style={styles.tarjeta}>
+                        <Pressable
+                            onPress={() => {
+                                setAbierto(abierto === p.pedido_id ? "" : p.pedido_id);
+                                setMonto("");
+                            }}
+                        >
+                            <View style={styles.filaSuperior}>
+                                <Text style={styles.cliente}>{p.cliente}</Text>
+                                <Text style={styles.total}>{pesos(p.total)}</Text>
+                            </View>
+                            <Text style={styles.detalle}>{detalle[p.pedido_id] ?? ""}</Text>
+                            <Text style={styles.detalle}>
+                                Entrega: {p.fecha_entrega ?? "sin fecha"}
+                                {Number(p.saldo) > 0 && p.estado_pedido !== "cancelado"
+                                    ? ` · Debe ${pesos(p.saldo)}`
+                                    : ""}
+                            </Text>
+                            <View style={styles.badges}>
+                                <Badge
+                                    texto={p.estado_pedido}
+                                    tono={tonoPedido[p.estado_pedido] ?? "neutro"}
+                                />
+                                <Badge
+                                    texto={p.estado_pago}
+                                    tono={tonoPago[p.estado_pago] ?? "rojo"}
+                                />
+                            </View>
+                        </Pressable>
 
                         {abierto === p.pedido_id && p.estado_pedido !== "cancelado" ? (
                             <View style={styles.acciones}>
                                 {p.estado_pedido === "agendado" ? (
-                                    <Pressable style={styles.botonAccion} onPress={() => entregar(p.pedido_id)}>
+                                    <Pressable
+                                        style={styles.botonAccion}
+                                        onPress={() => entregar(p.pedido_id)}
+                                    >
                                         <Text style={styles.botonAccionTexto}>Marcar entregado</Text>
                                     </Pressable>
                                 ) : null}
@@ -210,20 +213,26 @@ export default function PedidosScreen() {
                                             onChangeText={setMonto}
                                             keyboardType="numeric"
                                         />
-                                        <Pressable style={styles.botonAccion} onPress={() => registrarAbono(p)}>
+                                        <Pressable
+                                            style={styles.botonAccion}
+                                            onPress={() => registrarAbono(p)}
+                                        >
                                             <Text style={styles.botonAccionTexto}>Registrar abono</Text>
                                         </Pressable>
                                     </View>
                                 ) : null}
 
                                 {p.estado_pedido === "agendado" ? (
-                                    <Pressable style={styles.botonCancelar} onPress={() => cancelar(p.pedido_id)}>
+                                    <Pressable
+                                        style={styles.botonCancelar}
+                                        onPress={() => cancelar(p.pedido_id)}
+                                    >
                                         <Text style={styles.botonCancelarTexto}>Cancelar pedido</Text>
                                     </Pressable>
                                 ) : null}
                             </View>
                         ) : null}
-                    </Pressable>
+                    </View>
                 ))
             )}
         </ScrollView>
