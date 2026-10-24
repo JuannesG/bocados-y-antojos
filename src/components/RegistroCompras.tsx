@@ -24,10 +24,29 @@ type Compra = {
 type Linea = {
     materialId: string;
     cantidad: number;
-    precio: number;
     unidadCompra: string;
     equivalencia: number;
+    totalPagado: number;
 };
+
+type OpcionUnidad = { valor: string; etiqueta: string; equivalencia: number };
+
+function unidadesDeCompra(unidad: string): OpcionUnidad[] {
+    if (unidad === "g") {
+        return [
+            { valor: "g", etiqueta: "g", equivalencia: 1 },
+            { valor: "libra", etiqueta: "libras", equivalencia: 500 },
+            { valor: "kg", etiqueta: "kilos", equivalencia: 1000 },
+        ];
+    }
+    if (unidad === "ml") {
+        return [
+            { valor: "ml", etiqueta: "ml", equivalencia: 1 },
+            { valor: "litro", etiqueta: "litros", equivalencia: 1000 },
+        ];
+    }
+    return [];
+}
 
 export default function RegistroCompras() {
     const [materiales, setMateriales] = useState<Material[]>([]);
@@ -38,11 +57,9 @@ export default function RegistroCompras() {
     const [observacion, setObservacion] = useState("");
 
     const [materialId, setMaterialId] = useState("");
+    const [unidadElegida, setUnidadElegida] = useState("");
     const [cantidad, setCantidad] = useState("");
-    const [precio, setPrecio] = useState("");
-    const [porEmpaque, setPorEmpaque] = useState(false);
-    const [unidadCompra, setUnidadCompra] = useState("");
-    const [equivalencia, setEquivalencia] = useState("");
+    const [totalPagado, setTotalPagado] = useState("");
 
     const [lineas, setLineas] = useState<Linea[]>([]);
     const [error, setError] = useState("");
@@ -69,10 +86,13 @@ export default function RegistroCompras() {
     }, []);
 
     const cant = Number(cantidad.replace(",", "."));
-    const prec = Number(precio.replace(",", "."));
-    const equiv = Number(equivalencia.replace(",", "."));
+    const pagado = Number(totalPagado.replace(",", "."));
+
     const materialElegido = materiales.find((m) => m.id === materialId);
-    const totalCompra = lineas.reduce((suma, l) => suma + l.cantidad * l.precio, 0);
+    const opciones = materialElegido ? unidadesDeCompra(materialElegido.unidad) : [];
+    const opcion = opciones.find((o) => o.valor === unidadElegida);
+    const nombreUnidad = opcion ? opcion.etiqueta : materialElegido?.unidad ?? "";
+    const totalFactura = lineas.reduce((suma, l) => suma + l.totalPagado, 0);
 
     function nombreMaterial(id: string) {
         return materiales.find((m) => m.id === id)?.nombre ?? "—";
@@ -81,17 +101,19 @@ export default function RegistroCompras() {
         return materiales.find((m) => m.id === id)?.unidad ?? "";
     }
 
+    function elegirMaterial(id: string) {
+        setMaterialId(id);
+        const m = materiales.find((x) => x.id === id);
+        setUnidadElegida(m ? m.unidad : "");
+    }
+
     function agregarLinea() {
         if (!materialElegido) {
             setError("Elige un material");
             return;
         }
-        if (!(cant > 0) || !(prec > 0)) {
-            setError("La cantidad y el precio deben ser mayores a 0");
-            return;
-        }
-        if (porEmpaque && !(equiv > 0)) {
-            setError("Escribe cuántas unidades trae cada empaque");
+        if (!(cant > 0) || !(pagado > 0)) {
+            setError("La cantidad y el total pagado deben ser mayores a 0");
             return;
         }
         setError("");
@@ -101,20 +123,16 @@ export default function RegistroCompras() {
             {
                 materialId: materialElegido.id,
                 cantidad: cant,
-                precio: prec,
-                unidadCompra: porEmpaque
-                    ? unidadCompra.trim() || "paquete"
-                    : materialElegido.unidad,
-                equivalencia: porEmpaque ? equiv : 1,
+                unidadCompra: opcion ? opcion.valor : materialElegido.unidad,
+                equivalencia: opcion ? opcion.equivalencia : 1,
+                totalPagado: pagado,
             },
         ]);
 
         setMaterialId("");
+        setUnidadElegida("");
         setCantidad("");
-        setPrecio("");
-        setPorEmpaque(false);
-        setUnidadCompra("");
-        setEquivalencia("");
+        setTotalPagado("");
     }
 
     function quitarLinea(posicion: number) {
@@ -137,7 +155,7 @@ export default function RegistroCompras() {
                 fecha,
                 material_id: l.materialId,
                 cantidad: l.cantidad,
-                precio_unitario: l.precio,
+                precio_unitario: l.totalPagado / l.cantidad,
                 unidad_compra: l.unidadCompra,
                 equivalencia: l.equivalencia,
                 proveedor: proveedor.trim() || null,
@@ -159,7 +177,7 @@ export default function RegistroCompras() {
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
-            <Text style={styles.subtitulo}>Datos de la compra</Text>
+            <Text style={styles.subtitulo}>Datos de la factura</Text>
             <TextInput
                 style={styles.input}
                 placeholder="Fecha (AAAA-MM-DD)"
@@ -168,7 +186,7 @@ export default function RegistroCompras() {
             />
             <TextInput
                 style={styles.input}
-                placeholder="Proveedor (opcional)"
+                placeholder="Lugar o proveedor"
                 value={proveedor}
                 onChangeText={setProveedor}
             />
@@ -179,19 +197,32 @@ export default function RegistroCompras() {
                 onChangeText={setObservacion}
             />
 
-            <Text style={styles.subtitulo}>Materiales comprados</Text>
+            <Text style={styles.subtitulo}>Lo que compraste</Text>
             <Selector
                 valor={materialId}
-                onCambio={setMaterialId}
+                onCambio={elegirMaterial}
                 placeholder="Elige un material"
                 opciones={materiales.map((m) => ({ valor: m.id, etiqueta: m.nombre }))}
             />
+
+            {opciones.length > 0 ? (
+                <View style={styles.chips}>
+                    {opciones.map((o) => (
+                        <Pressable
+                            key={o.valor}
+                            style={[styles.chip, o.valor === unidadElegida && styles.chipActivo]}
+                            onPress={() => setUnidadElegida(o.valor)}
+                        >
+                            <Text style={styles.chipTexto}>{o.etiqueta}</Text>
+                        </Pressable>
+                    ))}
+                </View>
+            ) : null}
+
             <TextInput
                 style={styles.input}
                 placeholder={
-                    materialElegido
-                        ? `Cantidad (en ${porEmpaque ? unidadCompra || "empaques" : materialElegido.unidad})`
-                        : "Cantidad"
+                    materialElegido ? `Cantidad (en ${nombreUnidad})` : "Cantidad"
                 }
                 value={cantidad}
                 onChangeText={setCantidad}
@@ -199,48 +230,14 @@ export default function RegistroCompras() {
             />
             <TextInput
                 style={styles.input}
-                placeholder={
-                    porEmpaque ? "Precio de cada empaque" : "Precio de cada unidad"
-                }
-                value={precio}
-                onChangeText={setPrecio}
+                placeholder="Total pagado por este producto"
+                value={totalPagado}
+                onChangeText={setTotalPagado}
                 keyboardType="numeric"
             />
 
-            <Pressable
-                style={styles.enlace}
-                onPress={() => setPorEmpaque(!porEmpaque)}
-            >
-                <Text style={styles.enlaceTexto}>
-                    {porEmpaque ? "✓ Compro por paquete, kilo, etc." : "+ Compro por paquete, kilo, etc."}
-                </Text>
-            </Pressable>
-
-            {porEmpaque ? (
-                <View>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Empaque (ej. paquete, kg, caja)"
-                        value={unidadCompra}
-                        onChangeText={setUnidadCompra}
-                        autoCapitalize="none"
-                    />
-                    <TextInput
-                        style={styles.input}
-                        placeholder={
-                            materialElegido
-                                ? `Cuántas ${materialElegido.unidad} trae cada ${unidadCompra || "empaque"}`
-                                : "Cuántas unidades trae cada empaque"
-                        }
-                        value={equivalencia}
-                        onChangeText={setEquivalencia}
-                        keyboardType="numeric"
-                    />
-                </View>
-            ) : null}
-
             <Pressable style={styles.botonSecundario} onPress={agregarLinea}>
-                <Text style={styles.botonSecundarioTexto}>Agregar material</Text>
+                <Text style={styles.botonSecundarioTexto}>Agregar a la factura</Text>
             </Pressable>
 
             {lineas.map((l, posicion) => (
@@ -248,13 +245,13 @@ export default function RegistroCompras() {
                     <View style={{ flex: 1 }}>
                         <Text style={styles.nombre}>{nombreMaterial(l.materialId)}</Text>
                         <Text style={styles.detalle}>
-                            {l.cantidad} {l.unidadCompra} × {pesos(l.precio)}
+                            {l.cantidad} {l.unidadCompra}
                             {l.equivalencia !== 1
                                 ? ` · entran ${l.cantidad * l.equivalencia} ${unidadMaterial(l.materialId)}`
                                 : ""}
                         </Text>
                     </View>
-                    <Text style={styles.total}>{pesos(l.cantidad * l.precio)}</Text>
+                    <Text style={styles.total}>{pesos(l.totalPagado)}</Text>
                     <Pressable onPress={() => quitarLinea(posicion)}>
                         <Text style={styles.quitar}>✕</Text>
                     </Pressable>
@@ -262,7 +259,7 @@ export default function RegistroCompras() {
             ))}
 
             {lineas.length > 0 ? (
-                <Text style={styles.resumen}>Total de la compra: {pesos(totalCompra)}</Text>
+                <Text style={styles.resumen}>Total de la factura: {pesos(totalFactura)}</Text>
             ) : null}
 
             <Pressable style={styles.boton} onPress={guardar}>
@@ -301,8 +298,16 @@ const styles = StyleSheet.create({
         marginTop: 12,
         fontSize: 16,
     },
-    enlace: { marginTop: 14 },
-    enlaceTexto: { color: "#4E2E1E", fontWeight: "bold" },
+    chips: { flexDirection: "row", marginTop: 12 },
+    chip: {
+        backgroundColor: "white",
+        borderRadius: 20,
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        marginRight: 8,
+    },
+    chipActivo: { backgroundColor: "#FF8A00" },
+    chipTexto: { color: "#4E2E1E", fontWeight: "bold" },
     boton: {
         backgroundColor: "#FF8A00",
         borderRadius: 12,
