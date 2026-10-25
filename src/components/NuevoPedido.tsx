@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
         marginTop: 20,
         alignItems: "center",
     },
-    botonTexto: { color: "#1C1917", fontSize: 16, fontWeight: "bold" },
+    botonTexto: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
     botonSecundario: {
         backgroundColor: "#1C1917",
         borderRadius: 12,

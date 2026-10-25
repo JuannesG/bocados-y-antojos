@@ -11,7 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
 import Menu, { opcionesMenu } from "../components/Menu";
 import type { Pantalla } from "../components/Menu";
-import RegistroCompras from "../components/RegistroCompras";
+import ComprasScreen from "../screens/ComprasScreen";
 import InicioScreen from "../screens/InicioScreen";
 import MaterialesScreen from "../screens/MaterialesScreen";
 import ProductosScreen from "../screens/ProductosScreen";
@@ -48,7 +48,7 @@ export default function Layout({ email }: Props) {
             case "clientes":
                 return <ClientesScreen />;
             case "compras":
-                return <RegistroCompras />;
+                return <ComprasScreen />;
             case "reportes":
                 return <ReportesScreen />;
             default:

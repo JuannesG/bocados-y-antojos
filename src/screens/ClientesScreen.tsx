@@ -8,12 +8,17 @@ import {
     StyleSheet,
 } from "react-native";
 import { supabase } from "../lib/supabase";
+import { limpiar } from "../lib/formato";
+import Panel from "../components/Panel";
+import BarraAcciones from "../components/BarraAcciones";
 
 type Cliente = { id: string; nombre: string; telefono: string | null };
 
 export default function ClientesScreen() {
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [conteo, setConteo] = useState<Record<string, number>>({});
+    const [busqueda, setBusqueda] = useState("");
+    const [panelAbierto, setPanelAbierto] = useState(false);
     const [nombre, setNombre] = useState("");
     const [telefono, setTelefono] = useState("");
     const [error, setError] = useState("");
@@ -59,75 +64,122 @@ export default function ClientesScreen() {
 
         setNombre("");
         setTelefono("");
+        setPanelAbierto(false);
         cargar();
     }
 
+    const visibles = clientes.filter((c) => {
+        const texto = limpiar(busqueda);
+        return (
+            limpiar(c.nombre).includes(texto) ||
+            limpiar(c.telefono ?? "").includes(texto)
+        );
+    });
+
     return (
         <ScrollView contentContainerStyle={styles.container}>
-            <TextInput
-                style={styles.input}
-                placeholder="Nombre del cliente"
-                value={nombre}
-                onChangeText={setNombre}
+            <BarraAcciones
+                busqueda={busqueda}
+                onBusqueda={setBusqueda}
+                placeholder="Buscar cliente..."
+                textoBoton="Nuevo"
+                onBoton={() => setPanelAbierto(true)}
             />
-            <TextInput
-                style={styles.input}
-                placeholder="Teléfono (opcional)"
-                value={telefono}
-                onChangeText={setTelefono}
-                keyboardType="phone-pad"
-            />
-            <Pressable style={styles.boton} onPress={agregar}>
-                <Text style={styles.botonTexto}>Añadir cliente</Text>
-            </Pressable>
-            {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            <Text style={styles.subtitulo}>Clientes</Text>
-            {clientes.length === 0 ? (
-                <Text style={styles.vacio}>Aún no hay clientes</Text>
-            ) : (
-                clientes.map((c) => (
-                    <View key={c.id} style={styles.fila}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.nombre}>{c.nombre}</Text>
-                            <Text style={styles.detalle}>{c.telefono ?? "Sin teléfono"}</Text>
+            <View style={styles.tabla}>
+                <View style={styles.cabecera}>
+                    <Text style={[styles.cabeceraTexto, { flex: 2 }]}>Nombre</Text>
+                    <Text style={[styles.cabeceraTexto, { flex: 1.6 }]}>Teléfono</Text>
+                    <Text style={[styles.cabeceraTexto, { flex: 1, textAlign: "right" }]}>Pedidos</Text>
+                </View>
+
+                {visibles.length === 0 ? (
+                    <Text style={styles.vacio}>No hay clientes para mostrar</Text>
+                ) : (
+                    visibles.map((c) => (
+                        <View key={c.id} style={styles.fila}>
+                            <Text style={[styles.nombre, { flex: 2 }]}>{c.nombre}</Text>
+                            <Text style={[styles.telefono, { flex: 1.6 }]}>
+                                {c.telefono ?? "—"}
+                            </Text>
+                            <Text style={[styles.pedidos, { flex: 1 }]}>{conteo[c.id] ?? 0}</Text>
                         </View>
-                        <Text style={styles.pedidos}>{conteo[c.id] ?? 0} pedidos</Text>
-                    </View>
-                ))
-            )}
+                    ))
+                )}
+            </View>
+
+            <Panel
+                visible={panelAbierto}
+                titulo="Nuevo cliente"
+                onCerrar={() => setPanelAbierto(false)}
+            >
+                <TextInput
+                    style={styles.input}
+                    placeholder="Nombre del cliente"
+                    value={nombre}
+                    onChangeText={setNombre}
+                />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Teléfono (opcional)"
+                    value={telefono}
+                    onChangeText={setTelefono}
+                    keyboardType="phone-pad"
+                />
+                <Pressable style={styles.boton} onPress={agregar}>
+                    <Text style={styles.botonTexto}>Guardar cliente</Text>
+                </Pressable>
+                {error ? <Text style={styles.error}>{error}</Text> : null}
+            </Panel>
         </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
     container: { padding: 16 },
+    tabla: {
+        backgroundColor: "white",
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: "#E7E5E4",
+        marginTop: 14,
+        overflow: "hidden",
+    },
+    cabecera: {
+        flexDirection: "row",
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        backgroundColor: "#F5F5F4",
+    },
+    cabeceraTexto: { fontSize: 12, fontWeight: "bold", color: "#78716C" },
+    fila: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        borderTopWidth: 1,
+        borderTopColor: "#F5F5F4",
+    },
+    nombre: { fontSize: 15, fontWeight: "bold", color: "#1C1917" },
+    telefono: { fontSize: 14, color: "#78716C" },
+    pedidos: { fontSize: 15, fontWeight: "bold", color: "#1C1917", textAlign: "right" },
+    vacio: { padding: 20, textAlign: "center", color: "#78716C" },
     input: {
         backgroundColor: "white",
         borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#E7E5E4",
         padding: 14,
-        marginBottom: 12,
+        marginTop: 12,
         fontSize: 16,
     },
     boton: {
         backgroundColor: "#EA580C",
         borderRadius: 12,
         padding: 14,
+        marginTop: 20,
         alignItems: "center",
     },
-    botonTexto: { color: "#1C1917", fontSize: 16, fontWeight: "bold" },
+    botonTexto: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
     error: { color: "#E63946", marginTop: 12, textAlign: "center" },
-    subtitulo: { fontSize: 18, fontWeight: "bold", color: "#1C1917", marginTop: 28, marginBottom: 12 },
-    vacio: { color: "#1C1917", textAlign: "center" },
-    fila: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "white",
-        borderRadius: 12,
-        padding: 14,
-        marginBottom: 8,
-    },
-    nombre: { fontSize: 16, fontWeight: "bold", color: "#1C1917" },
-    detalle: { fontSize: 13, color: "#78716C", marginTop: 2 },
-    pedidos: { fontSize: 14, fontWeight: "bold", color: "#1C1917" },
 });

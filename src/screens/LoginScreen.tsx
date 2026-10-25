@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     botonTexto: {
-        color: "#1C1917", 
+        color: "#FFFFFF", 
         fontSize: 16, 
         fontWeight: "bold"
     },

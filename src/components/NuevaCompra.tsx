@@ -1,30 +1,10 @@
 import { useEffect, useState } from "react";
-import {
-    View,
-    Text,
-    TextInput,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-} from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
 import { supabase } from "../lib/supabase";
 import Selector from "./Selector";
 import { pesos, hoy } from "../lib/formato";
 
 type Material = { id: string; nombre: string; unidad: string };
-type Factura = {
-    id: string;
-    fecha: string;
-    proveedor: string;
-    observacion: string;
-};
-type ItemFactura = {
-    factura_id: string;
-    material_id: string;
-    cantidad: number;
-    unidad_compra: string;
-    total: number;
-};
 type Linea = {
     materialId: string;
     cantidad: number;
@@ -52,11 +32,10 @@ function unidadesDeCompra(unidad: string): OpcionUnidad[] {
     return [];
 }
 
-export default function RegistroCompras() {
+type Props = { onGuardado: () => void };
+
+export default function NuevaCompra({ onGuardado }: Props) {
     const [materiales, setMateriales] = useState<Material[]>([]);
-    const [facturas, setFacturas] = useState<Factura[]>([]);
-    const [items, setItems] = useState<ItemFactura[]>([]);
-    const [abierta, setAbierta] = useState("");
 
     const [fecha, setFecha] = useState(hoy());
     const [proveedor, setProveedor] = useState("");
@@ -70,35 +49,14 @@ export default function RegistroCompras() {
     const [lineas, setLineas] = useState<Linea[]>([]);
     const [error, setError] = useState("");
 
-    async function cargar() {
-        const { data: mats } = await supabase
-            .from("materiales")
-            .select("id, nombre, unidad")
-            .order("nombre");
-
-        const { data: facs } = await supabase
-            .from("facturas")
-            .select("id, fecha, proveedor, observacion")
-            .order("fecha", { ascending: false })
-            .order("created_at", { ascending: false })
-            .limit(20);
-
-        const ids = (facs ?? []).map((f) => f.id);
-        let detalle: ItemFactura[] = [];
-        if (ids.length > 0) {
-            const { data } = await supabase
-                .from("compras")
-                .select("factura_id, material_id, cantidad, unidad_compra, total")
-                .in("factura_id", ids);
-            detalle = data ?? [];
-        }
-
-        setMateriales(mats ?? []);
-        setFacturas(facs ?? []);
-        setItems(detalle);
-    }
-
     useEffect(() => {
+        async function cargar() {
+            const { data } = await supabase
+                .from("materiales")
+                .select("id, nombre, unidad")
+                .order("nombre");
+            setMateriales(data ?? []);
+        }
         cargar();
     }, []);
 
@@ -116,11 +74,6 @@ export default function RegistroCompras() {
     }
     function unidadMaterial(id: string) {
         return materiales.find((m) => m.id === id)?.unidad ?? "";
-    }
-    function totalDe(facturaId: string) {
-        return items
-            .filter((i) => i.factura_id === facturaId)
-            .reduce((suma, i) => suma + Number(i.total), 0);
     }
 
     function elegirMaterial(id: string) {
@@ -213,15 +166,11 @@ export default function RegistroCompras() {
             return;
         }
 
-        setLineas([]);
-        setProveedor("");
-        setObservacion("");
-        setFecha(hoy());
-        cargar();
+        onGuardado();
     }
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
+        <View>
             <Text style={styles.subtitulo}>Datos de la factura</Text>
             <TextInput
                 style={styles.input}
@@ -258,7 +207,14 @@ export default function RegistroCompras() {
                             style={[styles.chip, o.valor === unidadElegida && styles.chipActivo]}
                             onPress={() => setUnidadElegida(o.valor)}
                         >
-                            <Text style={styles.chipTexto}>{o.etiqueta}</Text>
+                            <Text
+                                style={[
+                                    styles.chipTexto,
+                                    o.valor === unidadElegida && styles.chipTextoActivo,
+                                ]}
+                            >
+                                {o.etiqueta}
+                            </Text>
                         </Pressable>
                     ))}
                 </View>
@@ -311,52 +267,17 @@ export default function RegistroCompras() {
                 <Text style={styles.botonTexto}>Guardar compra</Text>
             </Pressable>
             {error ? <Text style={styles.error}>{error}</Text> : null}
-
-            <Text style={[styles.subtitulo, { marginTop: 32 }]}>Últimas compras</Text>
-            {facturas.length === 0 ? (
-                <Text style={styles.vacio}>Aún no hay compras</Text>
-            ) : (
-                facturas.map((f) => (
-                    <Pressable
-                        key={f.id}
-                        style={styles.tarjeta}
-                        onPress={() => setAbierta(abierta === f.id ? "" : f.id)}
-                    >
-                        <View style={styles.filaSuperior}>
-                            <Text style={styles.nombre}>{f.proveedor}</Text>
-                            <Text style={styles.total}>{pesos(totalDe(f.id))}</Text>
-                        </View>
-                        <Text style={styles.detalle}>{f.observacion}</Text>
-                        <Text style={styles.detalle}>{f.fecha}</Text>
-
-                        {abierta === f.id ? (
-                            <View style={styles.detalleAbierto}>
-                                {items
-                                    .filter((i) => i.factura_id === f.id)
-                                    .map((i, posicion) => (
-                                        <View key={posicion} style={styles.filaDetalle}>
-                                            <Text style={styles.detalleTexto}>
-                                                {nombreMaterial(i.material_id)} · {Number(i.cantidad)}{" "}
-                                                {i.unidad_compra}
-                                            </Text>
-                                            <Text style={styles.detalleTexto}>{pesos(i.total)}</Text>
-                                        </View>
-                                    ))}
-                            </View>
-                        ) : null}
-                    </Pressable>
-                ))
-            )}
-        </ScrollView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { padding: 16, backgroundColor: "#FAFAF9" },
-    subtitulo: { fontSize: 18, fontWeight: "bold", color: "#1C1917", marginTop: 12 },
+    subtitulo: { fontSize: 16, fontWeight: "bold", color: "#1C1917", marginTop: 16 },
     input: {
         backgroundColor: "white",
         borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#E7E5E4",
         padding: 14,
         marginTop: 12,
         fontSize: 16,
@@ -365,12 +286,15 @@ const styles = StyleSheet.create({
     chip: {
         backgroundColor: "white",
         borderRadius: 20,
+        borderWidth: 1,
+        borderColor: "#E7E5E4",
         paddingVertical: 8,
         paddingHorizontal: 16,
         marginRight: 8,
     },
-    chipActivo: { backgroundColor: "#EA580C" },
+    chipActivo: { backgroundColor: "#1C1917", borderColor: "#1C1917" },
     chipTexto: { color: "#1C1917", fontWeight: "bold" },
+    chipTextoActivo: { color: "#FAFAF9" },
     boton: {
         backgroundColor: "#EA580C",
         borderRadius: 12,
@@ -378,7 +302,7 @@ const styles = StyleSheet.create({
         marginTop: 20,
         alignItems: "center",
     },
-    botonTexto: { color: "#1C1917", fontSize: 16, fontWeight: "bold" },
+    botonTexto: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
     botonSecundario: {
         backgroundColor: "#1C1917",
         borderRadius: 12,
@@ -392,32 +316,14 @@ const styles = StyleSheet.create({
         alignItems: "center",
         backgroundColor: "white",
         borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#E7E5E4",
         padding: 12,
         marginTop: 8,
     },
     quitar: { color: "#E63946", fontSize: 18, paddingHorizontal: 8 },
     resumen: { marginTop: 16, color: "#1C1917", fontWeight: "bold", fontSize: 18 },
     error: { color: "#E63946", marginTop: 12, textAlign: "center" },
-    vacio: { color: "#1C1917", textAlign: "center", marginTop: 12 },
-    tarjeta: {
-        backgroundColor: "white",
-        borderRadius: 12,
-        padding: 14,
-        marginTop: 8,
-    },
-    filaSuperior: { flexDirection: "row", justifyContent: "space-between" },
-    detalleAbierto: {
-        marginTop: 12,
-        paddingTop: 10,
-        borderTopWidth: 1,
-        borderTopColor: "#E5E5E5",
-    },
-    filaDetalle: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        marginTop: 4,
-    },
-    detalleTexto: { fontSize: 14, color: "#1C1917" },
     nombre: { fontSize: 16, color: "#1C1917", fontWeight: "bold" },
     detalle: { fontSize: 13, color: "#78716C", marginTop: 2 },
     total: { fontSize: 16, fontWeight: "bold", color: "#1C1917" },
