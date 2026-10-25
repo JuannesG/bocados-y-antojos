@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { NavigationContainer } from "@react-navigation/native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { supabase } from "./src/lib/supabase";
 import LoginScreen from "./src/screens/LoginScreen";
-import Tabs from "./src/navigation/Tabs";
+import Layout from "./src/layout/Layout";
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -25,8 +25,8 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <Tabs />
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <Layout email={session.user.email ?? ""} />
+    </SafeAreaProvider>
   );
 }

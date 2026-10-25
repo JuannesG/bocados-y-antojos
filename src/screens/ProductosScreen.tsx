@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import { useCallback } from "react";
-import { useFocusEffect } from "@react-navigation/native";
 import {
     View,
     Text,
@@ -66,11 +64,9 @@ export default function ProductosScreen() {
         setCostoMaterial(cm);
     }
 
-    useFocusEffect(
-        useCallback(() => {
-            cargar();
-        }, [])
-    );
+    useEffect(() => {
+        cargar();
+    }, []);
 
     const prec = Number(precio.replace(",", "."));
     const cantIng = Number(cantidadIng.replace(",", "."));

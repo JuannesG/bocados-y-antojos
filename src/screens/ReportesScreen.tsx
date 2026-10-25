@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
-import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
-import { cargarResumen, Resumen } from "../lib/resumen";
+import {
+    View,
+    Text,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    useWindowDimensions,
+} from "react-native";
+import { cargarResumen } from "../lib/resumen";
+import type { Resumen } from "../lib/resumen";
 import { fechaHace, hoy, inicioMes, pesos } from "../lib/formato";
 import TarjetaDato from "../components/TarjetaDato";
 import BarrasDia from "../components/BarrasDia";
@@ -22,6 +30,9 @@ function desdeDe(periodo: Periodo) {
 }
 
 export default function ReportesScreen() {
+    const { width } = useWindowDimensions();
+    const base = width >= 900 ? "23.5%" : "47.5%";
+
     const [periodo, setPeriodo] = useState<Periodo>("mes");
     const [resumen, setResumen] = useState<Resumen | null>(null);
 
@@ -29,7 +40,8 @@ export default function ReportesScreen() {
         cargarResumen(desdeDe(periodo), hoy()).then(setResumen);
     }, [periodo]);
 
-    const maximo = Math.max(...(resumen?.topProductos ?? []).map((p) => p.cantidad), 1);
+    const top = resumen?.topProductos ?? [];
+    const maximo = Math.max(...top.map((p) => p.cantidad), 1);
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
@@ -46,23 +58,23 @@ export default function ReportesScreen() {
             </View>
 
             <View style={styles.rejilla}>
-                <TarjetaDato titulo="Ventas totales" valor={pesos(resumen?.ventas ?? 0)} fondo="#E3F4DE" />
-                <TarjetaDato titulo="Costo de productos" valor={pesos(resumen?.costo ?? 0)} fondo="#FFF1C2" />
-                <TarjetaDato titulo="Ganancia estimada" valor={pesos(resumen?.ganancia ?? 0)} fondo="#FFE0B8" />
-                <TarjetaDato titulo="Inversión (compras)" valor={pesos(resumen?.inversion ?? 0)} fondo="white" />
+                <TarjetaDato titulo="Ventas totales" valor={pesos(resumen?.ventas ?? 0)} icono="trending-up-outline" base={base} />
+                <TarjetaDato titulo="Costo de productos" valor={pesos(resumen?.costo ?? 0)} icono="pricetag-outline" base={base} />
+                <TarjetaDato titulo="Ganancia estimada" valor={pesos(resumen?.ganancia ?? 0)} icono="cash-outline" base={base} />
+                <TarjetaDato titulo="Inversión (compras)" valor={pesos(resumen?.inversion ?? 0)} icono="wallet-outline" base={base} />
             </View>
 
-            <Text style={styles.subtitulo}>Ventas de la última semana</Text>
             <View style={styles.caja}>
+                <Text style={styles.subtitulo}>Ventas de la última semana</Text>
                 <BarrasDia datos={resumen?.ultimosDias ?? []} />
             </View>
 
-            <Text style={styles.subtitulo}>Productos más vendidos</Text>
             <View style={styles.caja}>
-                {(resumen?.topProductos ?? []).length === 0 ? (
+                <Text style={styles.subtitulo}>Productos más vendidos</Text>
+                {top.length === 0 ? (
                     <Text style={styles.vacio}>Aún no hay ventas en este periodo</Text>
                 ) : (
-                    (resumen?.topProductos ?? []).map((p, i) => {
+                    top.map((p, i) => {
                         const porcentaje = Math.round((p.cantidad / maximo) * 100);
                         return (
                             <View key={i} style={styles.producto}>
@@ -86,7 +98,7 @@ export default function ReportesScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { padding: 16, backgroundColor: "#FFF3E0" },
+    container: { padding: 16 },
     selector: {
         flexDirection: "row",
         backgroundColor: "white",
@@ -98,10 +110,17 @@ const styles = StyleSheet.create({
     opcionActiva: { backgroundColor: "#FF8A00" },
     opcionTexto: { color: "#4E2E1E", fontWeight: "bold", fontSize: 13 },
     rejilla: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-    subtitulo: { fontSize: 18, fontWeight: "bold", color: "#4E2E1E", marginTop: 24 },
-    caja: { backgroundColor: "white", borderRadius: 14, padding: 14, marginTop: 10 },
-    vacio: { color: "#4E2E1E", textAlign: "center" },
-    producto: { marginBottom: 14 },
+    caja: {
+        backgroundColor: "white",
+        borderRadius: 14,
+        padding: 14,
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: "#F1E6D6",
+    },
+    subtitulo: { fontSize: 16, fontWeight: "bold", color: "#4E2E1E" },
+    vacio: { color: "#7A5A45", marginTop: 12 },
+    producto: { marginTop: 14 },
     filaProducto: { flexDirection: "row", justifyContent: "space-between" },
     nombre: { fontSize: 15, color: "#4E2E1E", flex: 1 },
     cantidad: { fontSize: 14, fontWeight: "bold", color: "#4E2E1E" },
