@@ -4,40 +4,44 @@ import {
     Text,
     TextInput,
     Pressable,
-    FlatList,
-    ActivityIndicator,
+    ScrollView,
     StyleSheet,
 } from "react-native";
 import { supabase } from "../lib/supabase";
+import { limpiar } from "../lib/formato";
+import Badge from "../components/Badge";
+import Panel from "../components/Panel";
+import BarraAcciones from "../components/BarraAcciones";
+import Filtros from "../components/Filtros";
 
-type Material = {
+type Fila = {
     material_id: string;
     nombre: string;
     unidad: string;
     stock_minimo: number;
-    stock: number
-}
+    stock: number;
+};
+
+const esBajo = (m: Fila) => Number(m.stock) <= Number(m.stock_minimo);
 
 export default function MaterialesScreen() {
-    const [materiales, setMateriales] = useState<Material[]>([]);
-    const [cargando, setCargando] = useState(true);
-    const [error, setError] = useState("");
+    const [materiales, setMateriales] = useState<Fila[]>([]);
+    const [busqueda, setBusqueda] = useState("");
+    const [filtro, setFiltro] = useState("todos");
+
+    const [panelAbierto, setPanelAbierto] = useState(false);
     const [nombre, setNombre] = useState("");
     const [unidad, setUnidad] = useState("");
     const [categoria, setCategoria] = useState<"ingrediente" | "comprado">("ingrediente");
+    const [minimo, setMinimo] = useState("");
+    const [error, setError] = useState("");
 
     async function cargar() {
-        const { data, error: fallo } = await supabase
+        const { data } = await supabase
             .from("inventario")
             .select("material_id, nombre, unidad, stock_minimo, stock")
             .order("nombre");
-
-        if (fallo) {
-            setError("No se pudieron cargar los materiales");
-        } else {
-            setMateriales(data ?? []);
-        }
-        setCargando(false);
+        setMateriales(data ?? []);
     }
 
     useEffect(() => {
@@ -49,15 +53,19 @@ export default function MaterialesScreen() {
             setError("Escribe el nombre y la unidad");
             return;
         }
+        const minimoNum = Number(minimo.replace(",", ".")) || 0;
+        if (minimoNum < 0) {
+            setError("El stock mínimo no puede ser negativo");
+            return;
+        }
         setError("");
 
-        const { error: fallo } = await supabase
-            .from("materiales")
-            .insert({
-                nombre: nombre.trim(),
-                unidad: unidad.trim().toLowerCase(),
-                categoria,
-            });
+        const { error: fallo } = await supabase.from("materiales").insert({
+            nombre: nombre.trim(),
+            unidad: unidad.trim().toLowerCase(),
+            categoria,
+            stock_minimo: minimoNum,
+        });
 
         if (fallo) {
             setError("No se pudo guardar el material");
@@ -66,12 +74,71 @@ export default function MaterialesScreen() {
 
         setNombre("");
         setUnidad("");
+        setMinimo("");
+        setCategoria("ingrediente");
+        setPanelAbierto(false);
         cargar();
     }
 
+    const visibles = materiales.filter((m) => {
+        const coincide = limpiar(m.nombre).includes(limpiar(busqueda));
+        if (!coincide) return false;
+        if (filtro === "bajo") return esBajo(m);
+        if (filtro === "normal") return !esBajo(m);
+        return true;
+    });
+
+    const opcionesFiltro = [
+        { valor: "todos", etiqueta: "Todos", cantidad: materiales.length },
+        { valor: "bajo", etiqueta: "Stock bajo", cantidad: materiales.filter(esBajo).length },
+        { valor: "normal", etiqueta: "En stock", cantidad: materiales.filter((m) => !esBajo(m)).length },
+    ];
+
     return (
-        <View style={styles.container}>
-            <View style={styles.formulario}>
+        <ScrollView contentContainerStyle={styles.container}>
+            <BarraAcciones
+                busqueda={busqueda}
+                onBusqueda={setBusqueda}
+                placeholder="Buscar material..."
+                textoBoton="Nuevo"
+                onBoton={() => setPanelAbierto(true)}
+            />
+            <Filtros opciones={opcionesFiltro} valor={filtro} onCambio={setFiltro} />
+
+            <View style={styles.tabla}>
+                <View style={styles.cabecera}>
+                    <Text style={[styles.cabeceraTexto, { flex: 2 }]}>Material</Text>
+                    <Text style={[styles.cabeceraTexto, { flex: 1.2, textAlign: "right" }]}>Cantidad</Text>
+                    <Text style={[styles.cabeceraTexto, { flex: 1, paddingLeft: 10 }]}>Unidad</Text>
+                    <Text style={[styles.cabeceraTexto, { flex: 1.2 }]}>Estado</Text>
+                </View>
+
+                {visibles.length === 0 ? (
+                    <Text style={styles.vacio}>No hay materiales para mostrar</Text>
+                ) : (
+                    visibles.map((m) => (
+                        <View key={m.material_id} style={styles.fila}>
+                            <Text style={[styles.nombre, { flex: 2 }]}>{m.nombre}</Text>
+                            <Text style={[styles.cantidad, { flex: 1.2 }]}>
+                                {Number(m.stock).toLocaleString("es-CO")}
+                            </Text>
+                            <Text style={[styles.unidad, { flex: 1 }]}>{m.unidad}</Text>
+                            <View style={{ flex: 1.2, alignItems: "flex-start" }}>
+                                <Badge
+                                    texto={esBajo(m) ? "Bajo" : "Normal"}
+                                    tono={esBajo(m) ? "rojo" : "verde"}
+                                />
+                            </View>
+                        </View>
+                    ))
+                )}
+            </View>
+
+            <Panel
+                visible={panelAbierto}
+                titulo="Nuevo material"
+                onCerrar={() => setPanelAbierto(false)}
+            >
                 <TextInput
                     style={styles.input}
                     placeholder="Nombre (ej. lechuga)"
@@ -85,92 +152,101 @@ export default function MaterialesScreen() {
                     onChangeText={setUnidad}
                     autoCapitalize="none"
                 />
+
                 <View style={styles.selector}>
                     <Pressable
                         style={[styles.opcion, categoria === "ingrediente" && styles.opcionActiva]}
                         onPress={() => setCategoria("ingrediente")}
                     >
-                        <Text style={styles.opcionTexto}>Ingrediente</Text>
+                        <Text style={[styles.opcionTexto, categoria === "ingrediente" && styles.opcionTextoActivo]}>
+                            Ingrediente
+                        </Text>
                     </Pressable>
                     <Pressable
                         style={[styles.opcion, categoria === "comprado" && styles.opcionActiva]}
                         onPress={() => setCategoria("comprado")}
                     >
-                        <Text style={styles.opcionTexto}>Comprado hecho</Text>
+                        <Text style={[styles.opcionTexto, categoria === "comprado" && styles.opcionTextoActivo]}>
+                            Comprado hecho
+                        </Text>
                     </Pressable>
                 </View>
+
+                <TextInput
+                    style={styles.input}
+                    placeholder="Avisar cuando quede menos de... (opcional)"
+                    value={minimo}
+                    onChangeText={setMinimo}
+                    keyboardType="numeric"
+                />
+
                 <Pressable style={styles.boton} onPress={agregar}>
-                    <Text style={styles.botonTexto}>Añadir material</Text>
+                    <Text style={styles.botonTexto}>Guardar material</Text>
                 </Pressable>
                 {error ? <Text style={styles.error}>{error}</Text> : null}
-            </View>
-
-            {cargando ? (
-                <ActivityIndicator color="#EA580C" style={{ marginTop: 24 }} />
-            ) : (
-                <FlatList
-                    data={materiales}
-                    keyExtractor={(item) => item.material_id}
-                    ListEmptyComponent={
-                        <Text style={styles.vacio}>Aún no hay materiales</Text>
-                    }
-                    renderItem={({ item }) => {
-                        const stock = Number(item.stock);
-                        const bajo = stock <= Number(item.stock_minimo);
-                        return (
-                            <View style={styles.fila}>
-                                <Text style={styles.nombre}>{item.nombre}</Text>
-                                <Text style={[styles.stock, bajo && styles.stockBajo]}>
-                                    {stock} {item.unidad}
-                                </Text>
-                            </View>
-                        );
-                    }}
-                />
-            )}
-        </View>
+            </Panel>
+        </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#FAFAF9", padding: 16 },
-    formulario: { marginBottom: 16 },
+    container: { padding: 16 },
+    tabla: {
+        backgroundColor: "white",
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: "#E7E5E4",
+        marginTop: 14,
+        overflow: "hidden",
+    },
+    cabecera: {
+        flexDirection: "row",
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        backgroundColor: "#F5F5F4",
+    },
+    cabeceraTexto: { fontSize: 12, fontWeight: "bold", color: "#78716C" },
+    fila: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        borderTopWidth: 1,
+        borderTopColor: "#F5F5F4",
+    },
+    nombre: { fontSize: 15, color: "#1C1917" },
+    cantidad: { fontSize: 15, fontWeight: "bold", color: "#1C1917", textAlign: "right" },
+    unidad: { fontSize: 14, color: "#78716C", paddingLeft: 10 },
+    vacio: { padding: 20, textAlign: "center", color: "#78716C" },
     input: {
         backgroundColor: "white",
         borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#E7E5E4",
         padding: 14,
         marginTop: 12,
         fontSize: 16,
     },
-    boton: {
-        backgroundColor: "#EA580C",
-        borderRadius: 12,
-        padding: 14,
-        marginTop: 16,
-        alignItems: "center",
-    },
-    botonTexto: { color: "#1C1917", fontSize: 16, fontWeight: "bold" },
-    error: { color: "#E63946", marginTop: 12, textAlign: "center" },
-    vacio: { textAlign: "center", color: "#1C1917", marginTop: 24 },
-    fila: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        backgroundColor: "white",
-        borderRadius: 12,
-        padding: 14,
-        marginBottom: 8,
-    },
-    nombre: { fontSize: 16, color: "#1C1917" },
-    stock: { fontSize: 16, fontWeight: "bold", color: "#1C1917" },
-    stockBajo: { color: "#E63946" },
     selector: {
         flexDirection: "row",
         marginTop: 12,
         backgroundColor: "white",
         borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#E7E5E4",
         padding: 4,
     },
     opcion: { flex: 1, padding: 10, borderRadius: 10, alignItems: "center" },
-    opcionActiva: { backgroundColor: "#EA580C" },
+    opcionActiva: { backgroundColor: "#1C1917" },
     opcionTexto: { color: "#1C1917", fontWeight: "bold" },
+    opcionTextoActivo: { color: "#FAFAF9" },
+    boton: {
+        backgroundColor: "#EA580C",
+        borderRadius: 12,
+        padding: 14,
+        marginTop: 20,
+        alignItems: "center",
+    },
+    botonTexto: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
+    error: { color: "#E63946", marginTop: 12, textAlign: "center" },
 });

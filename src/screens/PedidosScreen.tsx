@@ -8,8 +8,12 @@ import {
     StyleSheet,
 } from "react-native";
 import { supabase } from "../lib/supabase";
+import { pesos, limpiar } from "../lib/formato";
 import Badge from "../components/Badge";
 import NuevoPedido from "../components/NuevoPedido";
+import Panel from "../components/Panel";
+import BarraAcciones from "../components/BarraAcciones";
+import Filtros from "../components/Filtros";
 
 type Pedido = {
     pedido_id: string;
@@ -21,8 +25,6 @@ type Pedido = {
     abono: number;
     saldo: number;
 };
-
-const pesos = (n: number) => "$" + Number(n).toLocaleString("es-CO");
 
 const tonoPedido: Record<string, "neutro" | "verde" | "gris"> = {
     agendado: "neutro",
@@ -38,7 +40,9 @@ const tonoPago: Record<string, "rojo" | "amarillo" | "verde"> = {
 export default function PedidosScreen() {
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
     const [detalle, setDetalle] = useState<Record<string, string>>({});
-    const [formAbierto, setFormAbierto] = useState(false);
+    const [busqueda, setBusqueda] = useState("");
+    const [filtro, setFiltro] = useState("todos");
+    const [panelAbierto, setPanelAbierto] = useState(false);
     const [abierto, setAbierto] = useState("");
     const [monto, setMonto] = useState("");
     const [error, setError] = useState("");
@@ -73,6 +77,7 @@ export default function PedidosScreen() {
     useEffect(() => {
         cargar();
     }, []);
+
     async function entregar(id: string) {
         setError("");
         const { data: items } = await supabase
@@ -138,127 +143,140 @@ export default function PedidosScreen() {
     }
 
     function alGuardar() {
-        setFormAbierto(false);
+        setPanelAbierto(false);
         cargar();
     }
 
+    const contar = (estado: string) =>
+        pedidos.filter((p) => p.estado_pedido === estado).length;
+
+    const opcionesFiltro = [
+        { valor: "todos", etiqueta: "Todos", cantidad: pedidos.length },
+        { valor: "agendado", etiqueta: "Agendado", cantidad: contar("agendado") },
+        { valor: "entregado", etiqueta: "Entregado", cantidad: contar("entregado") },
+        { valor: "cancelado", etiqueta: "Cancelado", cantidad: contar("cancelado") },
+    ];
+
+    const visibles = pedidos.filter((p) => {
+        const coincide =
+            limpiar(p.cliente).includes(limpiar(busqueda)) ||
+            limpiar(detalle[p.pedido_id] ?? "").includes(limpiar(busqueda));
+        if (!coincide) return false;
+        return filtro === "todos" || p.estado_pedido === filtro;
+    });
+
     return (
         <ScrollView contentContainerStyle={styles.container}>
-            <Pressable
-                style={styles.botonSecundario}
-                onPress={() => setFormAbierto(!formAbierto)}
-            >
-                <Text style={styles.botonSecundarioTexto}>
-                    {formAbierto ? "Cerrar formulario" : "+ Nuevo pedido"}
-                </Text>
-            </Pressable>
-
-            {formAbierto ? <NuevoPedido onGuardado={alGuardar} /> : null}
+            <BarraAcciones
+                busqueda={busqueda}
+                onBusqueda={setBusqueda}
+                placeholder="Buscar cliente o producto..."
+                textoBoton="Nuevo"
+                onBoton={() => setPanelAbierto(true)}
+            />
+            <Filtros opciones={opcionesFiltro} valor={filtro} onCambio={setFiltro} />
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            <Text style={styles.subtitulo}>Pedidos</Text>
-            {pedidos.length === 0 ? (
-                <Text style={styles.vacio}>Aún no hay pedidos</Text>
-            ) : (
-                pedidos.map((p) => (
-                    <View key={p.pedido_id} style={styles.tarjeta}>
-                        <Pressable
-                            onPress={() => {
-                                setAbierto(abierto === p.pedido_id ? "" : p.pedido_id);
-                                setMonto("");
-                            }}
-                        >
-                            <View style={styles.filaSuperior}>
-                                <Text style={styles.cliente}>{p.cliente}</Text>
-                                <Text style={styles.total}>{pesos(p.total)}</Text>
-                            </View>
-                            <Text style={styles.detalle}>{detalle[p.pedido_id] ?? ""}</Text>
-                            <Text style={styles.detalle}>
-                                Entrega: {p.fecha_entrega ?? "sin fecha"}
-                                {Number(p.saldo) > 0 && p.estado_pedido !== "cancelado"
-                                    ? ` · Debe ${pesos(p.saldo)}`
-                                    : ""}
-                            </Text>
-                            <View style={styles.badges}>
-                                <Badge
-                                    texto={p.estado_pedido}
-                                    tono={tonoPedido[p.estado_pedido] ?? "neutro"}
-                                />
-                                <Badge
-                                    texto={p.estado_pago}
-                                    tono={tonoPago[p.estado_pago] ?? "rojo"}
-                                />
-                            </View>
-                        </Pressable>
+            <View style={{ marginTop: 14 }}>
+                {visibles.length === 0 ? (
+                    <Text style={styles.vacio}>No hay pedidos para mostrar</Text>
+                ) : (
+                    visibles.map((p) => (
+                        <View key={p.pedido_id} style={styles.tarjeta}>
+                            <Pressable
+                                onPress={() => {
+                                    setAbierto(abierto === p.pedido_id ? "" : p.pedido_id);
+                                    setMonto("");
+                                }}
+                            >
+                                <View style={styles.filaSuperior}>
+                                    <Text style={styles.cliente}>{p.cliente}</Text>
+                                    <Text style={styles.total}>{pesos(p.total)}</Text>
+                                </View>
+                                <Text style={styles.detalle}>{detalle[p.pedido_id] ?? ""}</Text>
+                                <Text style={styles.detalle}>
+                                    Entrega: {p.fecha_entrega ?? "sin fecha"}
+                                    {Number(p.saldo) > 0 && p.estado_pedido !== "cancelado"
+                                        ? ` · Debe ${pesos(p.saldo)}`
+                                        : ""}
+                                </Text>
+                                <View style={styles.badges}>
+                                    <Badge
+                                        texto={p.estado_pedido}
+                                        tono={tonoPedido[p.estado_pedido] ?? "neutro"}
+                                    />
+                                    <Badge
+                                        texto={p.estado_pago}
+                                        tono={tonoPago[p.estado_pago] ?? "rojo"}
+                                    />
+                                </View>
+                            </Pressable>
 
-                        {abierto === p.pedido_id && p.estado_pedido !== "cancelado" ? (
-                            <View style={styles.acciones}>
-                                {p.estado_pedido === "agendado" ? (
-                                    <Pressable
-                                        style={styles.botonAccion}
-                                        onPress={() => entregar(p.pedido_id)}
-                                    >
-                                        <Text style={styles.botonAccionTexto}>Marcar entregado</Text>
-                                    </Pressable>
-                                ) : null}
-
-                                {Number(p.saldo) > 0 ? (
-                                    <View>
-                                        <TextInput
-                                            style={styles.input}
-                                            placeholder="Monto del abono"
-                                            value={monto}
-                                            onChangeText={setMonto}
-                                            keyboardType="numeric"
-                                        />
+                            {abierto === p.pedido_id && p.estado_pedido !== "cancelado" ? (
+                                <View style={styles.acciones}>
+                                    {p.estado_pedido === "agendado" ? (
                                         <Pressable
                                             style={styles.botonAccion}
-                                            onPress={() => registrarAbono(p)}
+                                            onPress={() => entregar(p.pedido_id)}
                                         >
-                                            <Text style={styles.botonAccionTexto}>Registrar abono</Text>
+                                            <Text style={styles.botonAccionTexto}>Marcar entregado</Text>
                                         </Pressable>
-                                    </View>
-                                ) : null}
+                                    ) : null}
 
-                                {p.estado_pedido === "agendado" ? (
-                                    <Pressable
-                                        style={styles.botonCancelar}
-                                        onPress={() => cancelar(p.pedido_id)}
-                                    >
-                                        <Text style={styles.botonCancelarTexto}>Cancelar pedido</Text>
-                                    </Pressable>
-                                ) : null}
-                            </View>
-                        ) : null}
-                    </View>
-                ))
-            )}
+                                    {Number(p.saldo) > 0 ? (
+                                        <View>
+                                            <TextInput
+                                                style={styles.input}
+                                                placeholder="Monto del abono"
+                                                value={monto}
+                                                onChangeText={setMonto}
+                                                keyboardType="numeric"
+                                            />
+                                            <Pressable
+                                                style={styles.botonAccion}
+                                                onPress={() => registrarAbono(p)}
+                                            >
+                                                <Text style={styles.botonAccionTexto}>Registrar abono</Text>
+                                            </Pressable>
+                                        </View>
+                                    ) : null}
+
+                                    {p.estado_pedido === "agendado" ? (
+                                        <Pressable
+                                            style={styles.botonCancelar}
+                                            onPress={() => cancelar(p.pedido_id)}
+                                        >
+                                            <Text style={styles.botonCancelarTexto}>Cancelar pedido</Text>
+                                        </Pressable>
+                                    ) : null}
+                                </View>
+                            ) : null}
+                        </View>
+                    ))
+                )}
+            </View>
+
+            <Panel
+                visible={panelAbierto}
+                titulo="Nuevo pedido"
+                onCerrar={() => setPanelAbierto(false)}
+            >
+                <NuevoPedido onGuardado={alGuardar} />
+            </Panel>
         </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { padding: 16, backgroundColor: "#FAFAF9" },
-    botonSecundario: {
-        backgroundColor: "#1C1917",
-        borderRadius: 12,
-        padding: 14,
-        alignItems: "center",
-    },
-    botonSecundarioTexto: { color: "#FAFAF9", fontSize: 16, fontWeight: "bold" },
+    container: { padding: 16 },
     error: { color: "#E63946", marginTop: 12, textAlign: "center" },
-    subtitulo: {
-        fontSize: 18,
-        fontWeight: "bold",
-        color: "#1C1917",
-        marginTop: 28,
-        marginBottom: 12,
-    },
-    vacio: { color: "#1C1917", textAlign: "center" },
+    vacio: { color: "#78716C", textAlign: "center", marginTop: 20 },
     tarjeta: {
         backgroundColor: "white",
-        borderRadius: 12,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: "#E7E5E4",
         padding: 14,
         marginBottom: 10,
     },
@@ -267,22 +285,29 @@ const styles = StyleSheet.create({
     total: { fontSize: 17, fontWeight: "bold", color: "#1C1917" },
     detalle: { fontSize: 13, color: "#78716C", marginTop: 4 },
     badges: { flexDirection: "row", marginTop: 10 },
-    acciones: { marginTop: 14, borderTopWidth: 1, borderTopColor: "#E5E5E5", paddingTop: 12 },
+    acciones: {
+        marginTop: 14,
+        borderTopWidth: 1,
+        borderTopColor: "#E7E5E4",
+        paddingTop: 12,
+    },
     input: {
         backgroundColor: "#FAFAF9",
         borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#E7E5E4",
         padding: 12,
         marginTop: 8,
         fontSize: 16,
     },
     botonAccion: {
-        backgroundColor: "#EA580C",
+        backgroundColor: "#1C1917",
         borderRadius: 12,
         padding: 12,
         marginTop: 10,
         alignItems: "center",
     },
-    botonAccionTexto: { color: "#1C1917", fontWeight: "bold", fontSize: 15 },
+    botonAccionTexto: { color: "#FAFAF9", fontWeight: "bold", fontSize: 15 },
     botonCancelar: {
         borderRadius: 12,
         padding: 12,

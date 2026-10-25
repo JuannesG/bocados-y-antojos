@@ -26,3 +26,11 @@ export function nombreDia(fecha: string) {
   const dias = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
   return dias[new Date(fecha + "T00:00:00").getDay()];
 }
+
+export function limpiar(texto: string) {
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}

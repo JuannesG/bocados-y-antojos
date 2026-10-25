@@ -1,14 +1,8 @@
 import { useEffect, useState } from "react";
-import {
-    View,
-    Text,
-    TextInput,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-} from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
 import { supabase } from "../lib/supabase";
 import Selector from "./Selector";
+import { pesos, hoy } from "../lib/formato";
 
 type Cliente = { id: string; nombre: string };
 type Producto = { id: string; nombre: string; precio_venta: number };
@@ -16,24 +10,19 @@ type Item = { productoId: string; cantidad: number; precio: number };
 
 type Props = { onGuardado: () => void };
 
-const pesos = (n: number) => "$" + Number(n).toLocaleString("es-CO");
-
-function hoy() {
-    const d = new Date();
-    const mes = String(d.getMonth() + 1).padStart(2, "0");
-    const dia = String(d.getDate()).padStart(2, "0");
-    return `${d.getFullYear()}-${mes}-${dia}`;
-}
-
 export default function NuevoPedido({ onGuardado }: Props) {
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [productos, setProductos] = useState<Producto[]>([]);
+
     const [clienteId, setClienteId] = useState("");
     const [clienteNuevo, setClienteNuevo] = useState("");
     const [fecha, setFecha] = useState(hoy());
+
     const [productoId, setProductoId] = useState("");
     const [cantidad, setCantidad] = useState("1");
+    const [precioLinea, setPrecioLinea] = useState("");
     const [items, setItems] = useState<Item[]>([]);
+
     const [abono, setAbono] = useState("");
     const [error, setError] = useState("");
 
@@ -55,11 +44,18 @@ export default function NuevoPedido({ onGuardado }: Props) {
     }, []);
 
     const cant = Number(cantidad.replace(",", "."));
+    const precioNum = Number(precioLinea.replace(",", "."));
     const abonoNum = Number(abono.replace(",", ".")) || 0;
     const total = items.reduce((suma, i) => suma + i.cantidad * i.precio, 0);
 
     function nombreProducto(id: string) {
         return productos.find((p) => p.id === id)?.nombre ?? "—";
+    }
+
+    function elegirProducto(id: string) {
+        setProductoId(id);
+        const p = productos.find((x) => x.id === id);
+        setPrecioLinea(p ? String(Number(p.precio_venta)) : "");
     }
 
     function anadirProducto() {
@@ -72,13 +68,18 @@ export default function NuevoPedido({ onGuardado }: Props) {
             setError("La cantidad debe ser mayor a 0");
             return;
         }
+        if (!(precioNum > 0)) {
+            setError("El precio debe ser mayor a 0");
+            return;
+        }
         setError("");
         setItems([
             ...items,
-            { productoId: producto.id, cantidad: cant, precio: Number(producto.precio_venta) },
+            { productoId: producto.id, cantidad: cant, precio: precioNum },
         ]);
         setProductoId("");
         setCantidad("1");
+        setPrecioLinea("");
     }
 
     function quitarItem(posicion: number) {
@@ -188,7 +189,7 @@ export default function NuevoPedido({ onGuardado }: Props) {
             <Text style={styles.etiqueta}>Productos del pedido</Text>
             <Selector
                 valor={productoId}
-                onCambio={setProductoId}
+                onCambio={elegirProducto}
                 placeholder="Elige un producto"
                 opciones={productos.map((p) => ({
                     valor: p.id,
@@ -202,15 +203,25 @@ export default function NuevoPedido({ onGuardado }: Props) {
                 onChangeText={setCantidad}
                 keyboardType="numeric"
             />
+            <TextInput
+                style={styles.input}
+                placeholder="Precio por unidad (puedes cambiarlo para una promoción)"
+                value={precioLinea}
+                onChangeText={setPrecioLinea}
+                keyboardType="numeric"
+            />
             <Pressable style={styles.botonSecundario} onPress={anadirProducto}>
-                <Text style={styles.botonSecundarioTexto}>Agregar Producto</Text>
+                <Text style={styles.botonSecundarioTexto}>Agregar producto</Text>
             </Pressable>
 
             {items.map((item, posicion) => (
                 <View key={posicion} style={styles.item}>
-                    <Text style={styles.texto}>
-                        {item.cantidad} × {nombreProducto(item.productoId)}
-                    </Text>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.texto}>
+                            {item.cantidad} × {nombreProducto(item.productoId)}
+                        </Text>
+                        <Text style={styles.detalle}>a {pesos(item.precio)} c/u</Text>
+                    </View>
                     <Text style={styles.texto}>{pesos(item.cantidad * item.precio)}</Text>
                     <Pressable onPress={() => quitarItem(posicion)}>
                         <Text style={styles.quitar}>✕</Text>
@@ -239,16 +250,7 @@ export default function NuevoPedido({ onGuardado }: Props) {
 }
 
 const styles = StyleSheet.create({
-    etiqueta: { fontSize: 14, color: "#1C1917", marginTop: 20, marginBottom: 8 },
-    chip: {
-        backgroundColor: "white",
-        borderRadius: 20,
-        paddingVertical: 8,
-        paddingHorizontal: 14,
-        marginRight: 8,
-    },
-    chipActivo: { backgroundColor: "#EA580C" },
-    chipTexto: { color: "#1C1917" },
+    etiqueta: { fontSize: 14, color: "#1C1917", marginTop: 20 },
     input: {
         backgroundColor: "white",
         borderRadius: 12,
@@ -274,14 +276,15 @@ const styles = StyleSheet.create({
     botonSecundarioTexto: { color: "#FAFAF9", fontSize: 16, fontWeight: "bold" },
     item: {
         flexDirection: "row",
-        justifyContent: "space-between",
         alignItems: "center",
         backgroundColor: "white",
         borderRadius: 12,
         padding: 12,
         marginTop: 8,
+        gap: 10,
     },
     texto: { color: "#1C1917", fontSize: 15 },
+    detalle: { color: "#78716C", fontSize: 12, marginTop: 2 },
     quitar: { color: "#E63946", fontSize: 18, paddingHorizontal: 8 },
     total: { marginTop: 16, color: "#1C1917", fontWeight: "bold", fontSize: 18 },
     error: { color: "#E63946", marginTop: 12, textAlign: "center" },
