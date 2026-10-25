@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, Image, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 export type Pantalla =
@@ -37,9 +37,11 @@ export default function Menu({ activa, onElegir, email, onSalir }: Props) {
     return (
         <View style={styles.menu}>
             <View style={styles.marca}>
-                <Text style={styles.nombre}>Bocados</Text>
-                <Text style={styles.nombreNaranja}>y Antojos</Text>
-                <Text style={styles.lema}>Inventario · Pedidos · Ventas</Text>
+                <Image
+                    source={require("../../assets/Logo.png")}
+                    style={styles.logo}
+                    resizeMode="contain"
+                />
             </View>
 
             <View style={{ flex: 1 }}>
@@ -76,10 +78,13 @@ export default function Menu({ activa, onElegir, email, onSalir }: Props) {
 
 const styles = StyleSheet.create({
     menu: { flex: 1, backgroundColor: "#4E2E1E", padding: 16 },
-    marca: { marginBottom: 24, paddingHorizontal: 8 },
-    nombre: { fontSize: 24, fontWeight: "bold", color: "#FFF3E0" },
-    nombreNaranja: { fontSize: 24, fontWeight: "bold", color: "#FF8A00" },
-    lema: { fontSize: 11, color: "#D9C7B5", marginTop: 4 },
+    marca: {
+        backgroundColor: "#FDF5E3",
+        borderRadius: 16,
+        padding: 10,
+        marginBottom: 20,
+    },
+    logo: { width: "100%", height: 120 },
     item: {
         flexDirection: "row",
         alignItems: "center",
