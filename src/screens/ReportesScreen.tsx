@@ -85,7 +85,7 @@ export default function ReportesScreen() {
                                     </Text>
                                 </View>
                                 <View style={styles.pista}>
-                                    <View style={{ flex: porcentaje, backgroundColor: "#FF8A00", borderRadius: 4 }} />
+                                    <View style={{ flex: porcentaje, backgroundColor: "#EA580C", borderRadius: 4 }} />
                                     <View style={{ flex: 100 - porcentaje }} />
                                 </View>
                             </View>
@@ -107,8 +107,8 @@ const styles = StyleSheet.create({
         marginBottom: 14,
     },
     opcion: { flex: 1, padding: 10, borderRadius: 10, alignItems: "center" },
-    opcionActiva: { backgroundColor: "#FF8A00" },
-    opcionTexto: { color: "#4E2E1E", fontWeight: "bold", fontSize: 13 },
+    opcionActiva: { backgroundColor: "#EA580C" },
+    opcionTexto: { color: "#1C1917", fontWeight: "bold", fontSize: 13 },
     rejilla: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
     caja: {
         backgroundColor: "white",
@@ -116,13 +116,13 @@ const styles = StyleSheet.create({
         padding: 14,
         marginTop: 10,
         borderWidth: 1,
-        borderColor: "#F1E6D6",
+        borderColor: "#E7E5E4",
     },
-    subtitulo: { fontSize: 16, fontWeight: "bold", color: "#4E2E1E" },
-    vacio: { color: "#7A5A45", marginTop: 12 },
+    subtitulo: { fontSize: 16, fontWeight: "bold", color: "#1C1917" },
+    vacio: { color: "#78716C", marginTop: 12 },
     producto: { marginTop: 14 },
     filaProducto: { flexDirection: "row", justifyContent: "space-between" },
-    nombre: { fontSize: 15, color: "#4E2E1E", flex: 1 },
-    cantidad: { fontSize: 14, fontWeight: "bold", color: "#4E2E1E" },
+    nombre: { fontSize: 15, color: "#1C1917", flex: 1 },
+    cantidad: { fontSize: 14, fontWeight: "bold", color: "#1C1917" },
     pista: { flexDirection: "row", height: 8, marginTop: 6 },
 });

@@ -15,11 +15,11 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#FFF3E0",
+        backgroundColor: "#FAFAF9",
     },
     texto: {
         fontSize: 22,
-        color: "#4E2E1E",
+        color: "#1C1917",
         fontWeight: "bold",
     },
 });

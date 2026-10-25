@@ -352,8 +352,8 @@ export default function RegistroCompras() {
 }
 
 const styles = StyleSheet.create({
-    container: { padding: 16, backgroundColor: "#FFF3E0" },
-    subtitulo: { fontSize: 18, fontWeight: "bold", color: "#4E2E1E", marginTop: 12 },
+    container: { padding: 16, backgroundColor: "#FAFAF9" },
+    subtitulo: { fontSize: 18, fontWeight: "bold", color: "#1C1917", marginTop: 12 },
     input: {
         backgroundColor: "white",
         borderRadius: 12,
@@ -369,24 +369,24 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         marginRight: 8,
     },
-    chipActivo: { backgroundColor: "#FF8A00" },
-    chipTexto: { color: "#4E2E1E", fontWeight: "bold" },
+    chipActivo: { backgroundColor: "#EA580C" },
+    chipTexto: { color: "#1C1917", fontWeight: "bold" },
     boton: {
-        backgroundColor: "#FF8A00",
+        backgroundColor: "#EA580C",
         borderRadius: 12,
         padding: 14,
         marginTop: 20,
         alignItems: "center",
     },
-    botonTexto: { color: "#4E2E1E", fontSize: 16, fontWeight: "bold" },
+    botonTexto: { color: "#1C1917", fontSize: 16, fontWeight: "bold" },
     botonSecundario: {
-        backgroundColor: "#4E2E1E",
+        backgroundColor: "#1C1917",
         borderRadius: 12,
         padding: 14,
         marginTop: 16,
         alignItems: "center",
     },
-    botonSecundarioTexto: { color: "#FFF3E0", fontSize: 16, fontWeight: "bold" },
+    botonSecundarioTexto: { color: "#FAFAF9", fontSize: 16, fontWeight: "bold" },
     linea: {
         flexDirection: "row",
         alignItems: "center",
@@ -396,9 +396,9 @@ const styles = StyleSheet.create({
         marginTop: 8,
     },
     quitar: { color: "#E63946", fontSize: 18, paddingHorizontal: 8 },
-    resumen: { marginTop: 16, color: "#4E2E1E", fontWeight: "bold", fontSize: 18 },
+    resumen: { marginTop: 16, color: "#1C1917", fontWeight: "bold", fontSize: 18 },
     error: { color: "#E63946", marginTop: 12, textAlign: "center" },
-    vacio: { color: "#4E2E1E", textAlign: "center", marginTop: 12 },
+    vacio: { color: "#1C1917", textAlign: "center", marginTop: 12 },
     tarjeta: {
         backgroundColor: "white",
         borderRadius: 12,
@@ -417,8 +417,8 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         marginTop: 4,
     },
-    detalleTexto: { fontSize: 14, color: "#4E2E1E" },
-    nombre: { fontSize: 16, color: "#4E2E1E", fontWeight: "bold" },
-    detalle: { fontSize: 13, color: "#7A5A45", marginTop: 2 },
-    total: { fontSize: 16, fontWeight: "bold", color: "#4E2E1E" },
+    detalleTexto: { fontSize: 14, color: "#1C1917" },
+    nombre: { fontSize: 16, color: "#1C1917", fontWeight: "bold" },
+    detalle: { fontSize: 13, color: "#78716C", marginTop: 2 },
+    total: { fontSize: 16, fontWeight: "bold", color: "#1C1917" },
 });

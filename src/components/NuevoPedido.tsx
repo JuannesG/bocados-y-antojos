@@ -239,7 +239,7 @@ export default function NuevoPedido({ onGuardado }: Props) {
 }
 
 const styles = StyleSheet.create({
-    etiqueta: { fontSize: 14, color: "#4E2E1E", marginTop: 20, marginBottom: 8 },
+    etiqueta: { fontSize: 14, color: "#1C1917", marginTop: 20, marginBottom: 8 },
     chip: {
         backgroundColor: "white",
         borderRadius: 20,
@@ -247,8 +247,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         marginRight: 8,
     },
-    chipActivo: { backgroundColor: "#FF8A00" },
-    chipTexto: { color: "#4E2E1E" },
+    chipActivo: { backgroundColor: "#EA580C" },
+    chipTexto: { color: "#1C1917" },
     input: {
         backgroundColor: "white",
         borderRadius: 12,
@@ -257,21 +257,21 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     boton: {
-        backgroundColor: "#FF8A00",
+        backgroundColor: "#EA580C",
         borderRadius: 12,
         padding: 14,
         marginTop: 20,
         alignItems: "center",
     },
-    botonTexto: { color: "#4E2E1E", fontSize: 16, fontWeight: "bold" },
+    botonTexto: { color: "#1C1917", fontSize: 16, fontWeight: "bold" },
     botonSecundario: {
-        backgroundColor: "#4E2E1E",
+        backgroundColor: "#1C1917",
         borderRadius: 12,
         padding: 14,
         marginTop: 12,
         alignItems: "center",
     },
-    botonSecundarioTexto: { color: "#FFF3E0", fontSize: 16, fontWeight: "bold" },
+    botonSecundarioTexto: { color: "#FAFAF9", fontSize: 16, fontWeight: "bold" },
     item: {
         flexDirection: "row",
         justifyContent: "space-between",
@@ -281,8 +281,8 @@ const styles = StyleSheet.create({
         padding: 12,
         marginTop: 8,
     },
-    texto: { color: "#4E2E1E", fontSize: 15 },
+    texto: { color: "#1C1917", fontSize: 15 },
     quitar: { color: "#E63946", fontSize: 18, paddingHorizontal: 8 },
-    total: { marginTop: 16, color: "#4E2E1E", fontWeight: "bold", fontSize: 18 },
+    total: { marginTop: 16, color: "#1C1917", fontWeight: "bold", fontSize: 18 },
     error: { color: "#E63946", marginTop: 12, textAlign: "center" },
 });

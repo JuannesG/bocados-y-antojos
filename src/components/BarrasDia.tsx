@@ -29,6 +29,6 @@ const styles = StyleSheet.create({
     contenedor: { flexDirection: "row", alignItems: "flex-end", marginTop: 12 },
     columna: { flex: 1, alignItems: "center" },
     zona: { height: 100, justifyContent: "flex-end", width: "100%", alignItems: "center" },
-    barra: { width: "55%", backgroundColor: "#FF8A00", borderRadius: 6 },
-    etiqueta: { fontSize: 12, color: "#4E2E1E", marginTop: 6 },
+    barra: { width: "55%", backgroundColor: "#EA580C", borderRadius: 6 },
+    etiqueta: { fontSize: 12, color: "#1C1917", marginTop: 6 },
 });

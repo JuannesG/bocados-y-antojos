@@ -47,7 +47,7 @@ export default function Menu({ activa, onElegir, email, onSalir }: Props) {
             <View style={{ flex: 1 }}>
                 {opcionesMenu.map((o) => {
                     const activo = o.clave === activa;
-                    const color = activo ? "#4E2E1E" : "#FFF3E0";
+                    const color = activo ? "#1C1917" : "#FAFAF9";
                     return (
                         <Pressable
                             key={o.clave}
@@ -69,7 +69,7 @@ export default function Menu({ activa, onElegir, email, onSalir }: Props) {
                     <Text style={styles.rol}>Administrador</Text>
                 </View>
                 <Pressable onPress={onSalir}>
-                    <Ionicons name="log-out-outline" size={24} color="#FFF3E0" />
+                    <Ionicons name="log-out-outline" size={24} color="#FAFAF9" />
                 </Pressable>
             </View>
         </View>
@@ -77,9 +77,9 @@ export default function Menu({ activa, onElegir, email, onSalir }: Props) {
 }
 
 const styles = StyleSheet.create({
-    menu: { flex: 1, backgroundColor: "#4E2E1E", padding: 16 },
+    menu: { flex: 1, backgroundColor: "#1C1917", padding: 16 },
     marca: {
-        backgroundColor: "#FDF5E3",
+        backgroundColor: "#FFFFFF",
         borderRadius: 16,
         padding: 10,
         marginBottom: 20,
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         marginBottom: 4,
     },
-    itemActivo: { backgroundColor: "#FF8A00" },
+    itemActivo: { backgroundColor: "#EA580C" },
     itemTexto: { fontSize: 16, fontWeight: "bold" },
     usuario: {
         flexDirection: "row",
@@ -101,8 +101,8 @@ const styles = StyleSheet.create({
         gap: 10,
         paddingTop: 14,
         borderTopWidth: 1,
-        borderTopColor: "#6B4A38",
+        borderTopColor: "#44403C",
     },
-    email: { color: "#FFF3E0", fontSize: 13 },
-    rol: { color: "#D9C7B5", fontSize: 11 },
+    email: { color: "#FAFAF9", fontSize: 13 },
+    rol: { color: "#A8A29E", fontSize: 11 },
 });

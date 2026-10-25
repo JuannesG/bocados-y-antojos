@@ -106,7 +106,7 @@ export default function MaterialesScreen() {
             </View>
 
             {cargando ? (
-                <ActivityIndicator color="#FF8A00" style={{ marginTop: 24 }} />
+                <ActivityIndicator color="#EA580C" style={{ marginTop: 24 }} />
             ) : (
                 <FlatList
                     data={materiales}
@@ -133,7 +133,7 @@ export default function MaterialesScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#FFF3E0", padding: 16 },
+    container: { flex: 1, backgroundColor: "#FAFAF9", padding: 16 },
     formulario: { marginBottom: 16 },
     input: {
         backgroundColor: "white",
@@ -143,15 +143,15 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     boton: {
-        backgroundColor: "#FF8A00",
+        backgroundColor: "#EA580C",
         borderRadius: 12,
         padding: 14,
         marginTop: 16,
         alignItems: "center",
     },
-    botonTexto: { color: "#4E2E1E", fontSize: 16, fontWeight: "bold" },
+    botonTexto: { color: "#1C1917", fontSize: 16, fontWeight: "bold" },
     error: { color: "#E63946", marginTop: 12, textAlign: "center" },
-    vacio: { textAlign: "center", color: "#4E2E1E", marginTop: 24 },
+    vacio: { textAlign: "center", color: "#1C1917", marginTop: 24 },
     fila: {
         flexDirection: "row",
         justifyContent: "space-between",
@@ -160,8 +160,8 @@ const styles = StyleSheet.create({
         padding: 14,
         marginBottom: 8,
     },
-    nombre: { fontSize: 16, color: "#4E2E1E" },
-    stock: { fontSize: 16, fontWeight: "bold", color: "#4E2E1E" },
+    nombre: { fontSize: 16, color: "#1C1917" },
+    stock: { fontSize: 16, fontWeight: "bold", color: "#1C1917" },
     stockBajo: { color: "#E63946" },
     selector: {
         flexDirection: "row",
@@ -171,6 +171,6 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     opcion: { flex: 1, padding: 10, borderRadius: 10, alignItems: "center" },
-    opcionActiva: { backgroundColor: "#FF8A00" },
-    opcionTexto: { color: "#4E2E1E", fontWeight: "bold" },
+    opcionActiva: { backgroundColor: "#EA580C" },
+    opcionTexto: { color: "#1C1917", fontWeight: "bold" },
 });

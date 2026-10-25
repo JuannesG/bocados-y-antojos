@@ -311,7 +311,7 @@ export default function ProductosScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { padding: 16, backgroundColor: "#FFF3E0" },
+    container: { padding: 16, backgroundColor: "#FAFAF9" },
     formulario: { marginTop: 8 },
     input: {
         backgroundColor: "white",
@@ -328,9 +328,9 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     opcion: { flex: 1, padding: 10, borderRadius: 10, alignItems: "center" },
-    opcionActiva: { backgroundColor: "#FF8A00" },
-    opcionTexto: { color: "#4E2E1E", fontWeight: "bold" },
-    etiqueta: { fontSize: 14, color: "#4E2E1E", marginTop: 20, marginBottom: 8 },
+    opcionActiva: { backgroundColor: "#EA580C" },
+    opcionTexto: { color: "#1C1917", fontWeight: "bold" },
+    etiqueta: { fontSize: 14, color: "#1C1917", marginTop: 20, marginBottom: 8 },
     chip: {
         backgroundColor: "white",
         borderRadius: 20,
@@ -338,24 +338,24 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         marginRight: 8,
     },
-    chipActivo: { backgroundColor: "#FF8A00" },
-    chipTexto: { color: "#4E2E1E" },
+    chipActivo: { backgroundColor: "#EA580C" },
+    chipTexto: { color: "#1C1917" },
     boton: {
-        backgroundColor: "#FF8A00",
+        backgroundColor: "#EA580C",
         borderRadius: 12,
         padding: 14,
         marginTop: 20,
         alignItems: "center",
     },
-    botonTexto: { color: "#4E2E1E", fontSize: 16, fontWeight: "bold" },
+    botonTexto: { color: "#1C1917", fontSize: 16, fontWeight: "bold" },
     botonSecundario: {
-        backgroundColor: "#4E2E1E",
+        backgroundColor: "#1C1917",
         borderRadius: 12,
         padding: 14,
         marginTop: 12,
         alignItems: "center",
     },
-    botonSecundarioTexto: { color: "#FFF3E0", fontSize: 16, fontWeight: "bold" },
+    botonSecundarioTexto: { color: "#FAFAF9", fontSize: 16, fontWeight: "bold" },
     ingrediente: {
         flexDirection: "row",
         justifyContent: "space-between",
@@ -365,16 +365,16 @@ const styles = StyleSheet.create({
         marginTop: 8,
     },
     quitar: { color: "#E63946", fontSize: 18, paddingHorizontal: 8 },
-    resumen: { marginTop: 16, color: "#4E2E1E", fontWeight: "bold" },
+    resumen: { marginTop: 16, color: "#1C1917", fontWeight: "bold" },
     error: { color: "#E63946", marginTop: 12, textAlign: "center" },
     subtitulo: {
         fontSize: 18,
         fontWeight: "bold",
-        color: "#4E2E1E",
+        color: "#1C1917",
         marginTop: 28,
         marginBottom: 12,
     },
-    vacio: { color: "#4E2E1E", textAlign: "center" },
+    vacio: { color: "#1C1917", textAlign: "center" },
     fila: {
         flexDirection: "row",
         justifyContent: "space-between",
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
         padding: 14,
         marginBottom: 8,
     },
-    nombre: { fontSize: 16, color: "#4E2E1E" },
-    detalle: { fontSize: 13, color: "#7A5A45", marginTop: 2 },
-    total: { fontSize: 16, fontWeight: "bold", color: "#4E2E1E" },
+    nombre: { fontSize: 16, color: "#1C1917" },
+    detalle: { fontSize: 13, color: "#78716C", marginTop: 2 },
+    total: { fontSize: 16, fontWeight: "bold", color: "#1C1917" },
 });

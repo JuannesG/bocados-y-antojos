@@ -47,12 +47,12 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         padding: 24,
-        backgroundColor: "#FFF3E0",
+        backgroundColor: "#FAFAF9",
     },
     titulo: {
         fontSize: 28,
         fontWeight: "bold",
-        color: "#4E2E1E",
+        color: "#1C1917",
         textAlign: "center",
     },
     input: {
@@ -63,14 +63,14 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     boton: {
-        backgroundColor: "#FF8A00",
+        backgroundColor: "#EA580C",
         borderRadius: 12, 
         padding: 14, 
         marginTop: 24, 
         alignItems: "center",
     },
     botonTexto: {
-        color: "#4E2E1E", 
+        color: "#1C1917", 
         fontSize: 16, 
         fontWeight: "bold"
     },

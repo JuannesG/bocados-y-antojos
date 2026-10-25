@@ -90,7 +90,7 @@ export default function Layout({ email }: Props) {
             <View style={styles.principal}>
                 <View style={styles.encabezado}>
                     <Pressable onPress={() => setMenuAbierto(true)}>
-                        <Ionicons name="menu" size={28} color="#4E2E1E" />
+                        <Ionicons name="menu" size={28} color="#1C1917" />
                     </Pressable>
                     <Text style={styles.titulo}>{titulo}</Text>
                 </View>
@@ -108,7 +108,7 @@ export default function Layout({ email }: Props) {
 }
 
 const styles = StyleSheet.create({
-    raiz: { flex: 1, backgroundColor: "#FFF3E0" },
+    raiz: { flex: 1, backgroundColor: "#FAFAF9" },
     fila: { flex: 1, flexDirection: "row" },
     lateral: { width: 250 },
     principal: { flex: 1 },
@@ -119,9 +119,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 14,
         borderBottomWidth: 1,
-        borderBottomColor: "#F1E6D6",
+        borderBottomColor: "#E7E5E4",
     },
-    titulo: { fontSize: 22, fontWeight: "bold", color: "#4E2E1E" },
+    titulo: { fontSize: 22, fontWeight: "bold", color: "#1C1917" },
     cuerpo: { flex: 1, width: "100%", maxWidth: 1000, alignSelf: "center" },
     capa: {
         position: "absolute",
@@ -134,5 +134,5 @@ const styles = StyleSheet.create({
     cajon: { width: 270 },
     fondo: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
     proximamente: { flex: 1, alignItems: "center", justifyContent: "center" },
-    proximamenteTexto: { fontSize: 18, color: "#7A5A45" },
+    proximamenteTexto: { fontSize: 18, color: "#78716C" },
 });

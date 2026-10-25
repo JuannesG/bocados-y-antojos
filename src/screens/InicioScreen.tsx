@@ -107,7 +107,7 @@ export default function InicioScreen() {
 
 const styles = StyleSheet.create({
     container: { padding: 16 },
-    saludo: { fontSize: 15, color: "#7A5A45", marginBottom: 14 },
+    saludo: { fontSize: 15, color: "#78716C", marginBottom: 14 },
     rejilla: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
     paneles: { gap: 10, marginTop: 10 },
     caja: {
@@ -115,12 +115,12 @@ const styles = StyleSheet.create({
         borderRadius: 14,
         padding: 14,
         borderWidth: 1,
-        borderColor: "#F1E6D6",
+        borderColor: "#E7E5E4",
     },
-    subtitulo: { fontSize: 16, fontWeight: "bold", color: "#4E2E1E" },
-    vacio: { color: "#7A5A45", marginTop: 12 },
+    subtitulo: { fontSize: 16, fontWeight: "bold", color: "#1C1917" },
+    vacio: { color: "#78716C", marginTop: 12 },
     fila: { flexDirection: "row", alignItems: "center", paddingVertical: 8, gap: 10 },
     punto: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#E63946" },
-    nombre: { flex: 1, fontSize: 15, color: "#4E2E1E" },
+    nombre: { flex: 1, fontSize: 15, color: "#1C1917" },
     stock: { fontSize: 15, fontWeight: "bold", color: "#E63946" },
 });

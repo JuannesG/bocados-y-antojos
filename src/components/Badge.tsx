@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from "react-native";
 type Tono = "neutro" | "verde" | "amarillo" | "rojo" | "gris";
 
 const tonos: Record<Tono, { fondo: string; texto: string }> = {
-    neutro: { fondo: "#FFF3E0", texto: "#4E2E1E" },
+    neutro: { fondo: "#FAFAF9", texto: "#1C1917" },
     verde: { fondo: "#E3F4DE", texto: "#27500A" },
     amarillo: { fondo: "#FFF1C2", texto: "#5C4400" },
     rojo: { fondo: "#FCE0E3", texto: "#8A1F2B" },
