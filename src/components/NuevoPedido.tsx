@@ -1,16 +1,20 @@
 import { useEffect, useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
+import { View, Text, TextInput, Pressable } from "react-native";
 import { supabase } from "../lib/supabase";
 import Selector from "./Selector";
 import { pesos, hoy } from "../lib/formato";
+import { comunes } from "../styles/comunes";
+import { styles } from "../styles/NuevoPedido.styles";
 
 type Cliente = { id: string; nombre: string };
 type Producto = { id: string; nombre: string; precio_venta: number };
 type Item = { productoId: string; cantidad: number; precio: number };
 
-type Props = { onGuardado: () => void };
+type Props = { pedidoId?: string; onGuardado: () => void };
 
-export default function NuevoPedido({ onGuardado }: Props) {
+export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
+    const editando = pedidoId !== undefined;
+
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [productos, setProductos] = useState<Producto[]>([]);
 
@@ -24,6 +28,8 @@ export default function NuevoPedido({ onGuardado }: Props) {
     const [items, setItems] = useState<Item[]>([]);
 
     const [abono, setAbono] = useState("");
+    const [abonoActual, setAbonoActual] = useState(0);
+    const [idsViejos, setIdsViejos] = useState<string[]>([]);
     const [error, setError] = useState("");
 
     useEffect(() => {
@@ -39,9 +45,35 @@ export default function NuevoPedido({ onGuardado }: Props) {
                 .order("nombre");
             setClientes(cli ?? []);
             setProductos(prod ?? []);
+
+            if (pedidoId) {
+                const { data: ped } = await supabase
+                    .from("pedidos")
+                    .select("cliente_id, fecha_entrega, abono")
+                    .eq("id", pedidoId)
+                    .single();
+                const { data: its } = await supabase
+                    .from("pedido_items")
+                    .select("id, producto_id, cantidad, precio_unitario")
+                    .eq("pedido_id", pedidoId);
+
+                if (ped) {
+                    setClienteId(ped.cliente_id);
+                    setFecha(ped.fecha_entrega ?? hoy());
+                    setAbonoActual(Number(ped.abono));
+                }
+                setItems(
+                    (its ?? []).map((i) => ({
+                        productoId: i.producto_id,
+                        cantidad: Number(i.cantidad),
+                        precio: Number(i.precio_unitario),
+                    }))
+                );
+                setIdsViejos((its ?? []).map((i) => i.id));
+            }
         }
         cargar();
-    }, []);
+    }, [pedidoId]);
 
     const cant = Number(cantidad.replace(",", "."));
     const precioNum = Number(precioLinea.replace(",", "."));
@@ -99,8 +131,13 @@ export default function NuevoPedido({ onGuardado }: Props) {
             setError("Añade al menos un producto");
             return;
         }
-        if (abonoNum < 0 || abonoNum > total) {
-            setError("El abono no puede ser mayor que el total");
+        const abonoFinal = editando ? abonoActual : abonoNum;
+        if (abonoFinal < 0 || abonoFinal > total) {
+            setError(
+                editando
+                    ? "El total no puede quedar por debajo de lo que el cliente ya abonó"
+                    : "El abono no puede ser mayor que el total"
+            );
             return;
         }
         setError("");
@@ -120,7 +157,42 @@ export default function NuevoPedido({ onGuardado }: Props) {
         }
 
         const estadoPago =
-            abonoNum >= total ? "pagado" : abonoNum > 0 ? "abono" : "pendiente";
+            abonoFinal >= total ? "pagado" : abonoFinal > 0 ? "abono" : "pendiente";
+
+        if (editando && pedidoId) {
+            const { error: falloItems } = await supabase.from("pedido_items").insert(
+                items.map((i) => ({
+                    pedido_id: pedidoId,
+                    producto_id: i.productoId,
+                    cantidad: i.cantidad,
+                    precio_unitario: i.precio,
+                }))
+            );
+            if (falloItems) {
+                setError("No se pudieron guardar los productos. No se cambió nada.");
+                return;
+            }
+
+            if (idsViejos.length > 0) {
+                await supabase.from("pedido_items").delete().in("id", idsViejos);
+            }
+
+            const { error: falloPedido } = await supabase
+                .from("pedidos")
+                .update({
+                    cliente_id: idCliente,
+                    fecha_entrega: fecha,
+                    estado_pago: estadoPago,
+                })
+                .eq("id", pedidoId);
+            if (falloPedido) {
+                setError("Se guardaron los productos, pero falló el resto. Intenta de nuevo.");
+                return;
+            }
+
+            onGuardado();
+            return;
+        }
 
         const { data: pedido, error: falloPedido } = await supabase
             .from("pedidos")
@@ -170,7 +242,7 @@ export default function NuevoPedido({ onGuardado }: Props) {
                 opciones={clientes.map((c) => ({ valor: c.id, etiqueta: c.nombre }))}
             />
             <TextInput
-                style={styles.input}
+                style={comunes.input}
                 placeholder="O escribe un cliente nuevo"
                 value={clienteNuevo}
                 onChangeText={(texto) => {
@@ -180,7 +252,7 @@ export default function NuevoPedido({ onGuardado }: Props) {
             />
 
             <TextInput
-                style={styles.input}
+                style={comunes.input}
                 placeholder="Fecha de entrega (AAAA-MM-DD)"
                 value={fecha}
                 onChangeText={setFecha}
@@ -197,21 +269,21 @@ export default function NuevoPedido({ onGuardado }: Props) {
                 }))}
             />
             <TextInput
-                style={styles.input}
+                style={comunes.input}
                 placeholder="Cantidad"
                 value={cantidad}
                 onChangeText={setCantidad}
                 keyboardType="numeric"
             />
             <TextInput
-                style={styles.input}
+                style={comunes.input}
                 placeholder="Precio por unidad (puedes cambiarlo para una promoción)"
                 value={precioLinea}
                 onChangeText={setPrecioLinea}
                 keyboardType="numeric"
             />
-            <Pressable style={styles.botonSecundario} onPress={anadirProducto}>
-                <Text style={styles.botonSecundarioTexto}>Agregar producto</Text>
+            <Pressable style={comunes.botonOscuro} onPress={anadirProducto}>
+                <Text style={comunes.botonOscuroTexto}>Agregar producto</Text>
             </Pressable>
 
             {items.map((item, posicion) => (
@@ -233,59 +305,27 @@ export default function NuevoPedido({ onGuardado }: Props) {
                 <Text style={styles.total}>Total: {pesos(total)}</Text>
             ) : null}
 
-            <TextInput
-                style={styles.input}
-                placeholder="Abono recibido (opcional)"
-                value={abono}
-                onChangeText={setAbono}
-                keyboardType="numeric"
-            />
+            {editando ? (
+                <Text style={styles.nota}>
+                    Abonado hasta ahora: {pesos(abonoActual)}. Los abonos nuevos se registran
+                    desde el pedido.
+                </Text>
+            ) : (
+                <TextInput
+                    style={comunes.input}
+                    placeholder="Abono recibido (opcional)"
+                    value={abono}
+                    onChangeText={setAbono}
+                    keyboardType="numeric"
+                />
+            )}
 
-            <Pressable style={styles.boton} onPress={guardar}>
-                <Text style={styles.botonTexto}>Guardar pedido</Text>
+            <Pressable style={comunes.botonPrimario} onPress={guardar}>
+                <Text style={comunes.botonPrimarioTexto}>
+                    {editando ? "Guardar cambios" : "Guardar pedido"}
+                </Text>
             </Pressable>
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? <Text style={comunes.error}>{error}</Text> : null}
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    etiqueta: { fontSize: 14, color: "#1C1917", marginTop: 20 },
-    input: {
-        backgroundColor: "white",
-        borderRadius: 12,
-        padding: 14,
-        marginTop: 12,
-        fontSize: 16,
-    },
-    boton: {
-        backgroundColor: "#EA580C",
-        borderRadius: 12,
-        padding: 14,
-        marginTop: 20,
-        alignItems: "center",
-    },
-    botonTexto: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
-    botonSecundario: {
-        backgroundColor: "#1C1917",
-        borderRadius: 12,
-        padding: 14,
-        marginTop: 12,
-        alignItems: "center",
-    },
-    botonSecundarioTexto: { color: "#FAFAF9", fontSize: 16, fontWeight: "bold" },
-    item: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "white",
-        borderRadius: 12,
-        padding: 12,
-        marginTop: 8,
-        gap: 10,
-    },
-    texto: { color: "#1C1917", fontSize: 15 },
-    detalle: { color: "#78716C", fontSize: 12, marginTop: 2 },
-    quitar: { color: "#E63946", fontSize: 18, paddingHorizontal: 8 },
-    total: { marginTop: 16, color: "#1C1917", fontWeight: "bold", fontSize: 18 },
-    error: { color: "#E63946", marginTop: 12, textAlign: "center" },
-});

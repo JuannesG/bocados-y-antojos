@@ -1,12 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-    View,
-    Text,
-    TextInput,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-} from "react-native";
+import { View, Text, TextInput, Pressable, ScrollView } from "react-native";
 import { supabase } from "../lib/supabase";
 import { pesos, limpiar } from "../lib/formato";
 import Badge from "../components/Badge";
@@ -14,6 +7,8 @@ import NuevoPedido from "../components/NuevoPedido";
 import Panel from "../components/Panel";
 import BarraAcciones from "../components/BarraAcciones";
 import Filtros from "../components/Filtros";
+import { comunes } from "../styles/comunes";
+import { styles } from "../styles/Pedidos.styles";
 
 type Pedido = {
     pedido_id: string;
@@ -42,7 +37,9 @@ export default function PedidosScreen() {
     const [detalle, setDetalle] = useState<Record<string, string>>({});
     const [busqueda, setBusqueda] = useState("");
     const [filtro, setFiltro] = useState("todos");
+
     const [panelAbierto, setPanelAbierto] = useState(false);
+    const [editando, setEditando] = useState("");
     const [abierto, setAbierto] = useState("");
     const [monto, setMonto] = useState("");
     const [error, setError] = useState("");
@@ -144,6 +141,7 @@ export default function PedidosScreen() {
 
     function alGuardar() {
         setPanelAbierto(false);
+        setEditando("");
         cargar();
     }
 
@@ -158,9 +156,10 @@ export default function PedidosScreen() {
     ];
 
     const visibles = pedidos.filter((p) => {
+        const texto = limpiar(busqueda);
         const coincide =
-            limpiar(p.cliente).includes(limpiar(busqueda)) ||
-            limpiar(detalle[p.pedido_id] ?? "").includes(limpiar(busqueda));
+            limpiar(p.cliente).includes(texto) ||
+            limpiar(detalle[p.pedido_id] ?? "").includes(texto);
         if (!coincide) return false;
         return filtro === "todos" || p.estado_pedido === filtro;
     });
@@ -176,11 +175,11 @@ export default function PedidosScreen() {
             />
             <Filtros opciones={opcionesFiltro} valor={filtro} onCambio={setFiltro} />
 
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? <Text style={comunes.error}>{error}</Text> : null}
 
-            <View style={{ marginTop: 14 }}>
+            <View style={styles.lista}>
                 {visibles.length === 0 ? (
-                    <Text style={styles.vacio}>No hay pedidos para mostrar</Text>
+                    <Text style={comunes.vacio}>No hay pedidos para mostrar</Text>
                 ) : (
                     visibles.map((p) => (
                         <View key={p.pedido_id} style={styles.tarjeta}>
@@ -217,37 +216,46 @@ export default function PedidosScreen() {
                                 <View style={styles.acciones}>
                                     {p.estado_pedido === "agendado" ? (
                                         <Pressable
-                                            style={styles.botonAccion}
+                                            style={comunes.botonOscuro}
+                                            onPress={() => setEditando(p.pedido_id)}
+                                        >
+                                            <Text style={comunes.botonOscuroTexto}>Editar pedido</Text>
+                                        </Pressable>
+                                    ) : null}
+
+                                    {p.estado_pedido === "agendado" ? (
+                                        <Pressable
+                                            style={comunes.botonOscuro}
                                             onPress={() => entregar(p.pedido_id)}
                                         >
-                                            <Text style={styles.botonAccionTexto}>Marcar entregado</Text>
+                                            <Text style={comunes.botonOscuroTexto}>Marcar entregado</Text>
                                         </Pressable>
                                     ) : null}
 
                                     {Number(p.saldo) > 0 ? (
                                         <View>
                                             <TextInput
-                                                style={styles.input}
+                                                style={comunes.input}
                                                 placeholder="Monto del abono"
                                                 value={monto}
                                                 onChangeText={setMonto}
                                                 keyboardType="numeric"
                                             />
                                             <Pressable
-                                                style={styles.botonAccion}
+                                                style={comunes.botonOscuro}
                                                 onPress={() => registrarAbono(p)}
                                             >
-                                                <Text style={styles.botonAccionTexto}>Registrar abono</Text>
+                                                <Text style={comunes.botonOscuroTexto}>Registrar abono</Text>
                                             </Pressable>
                                         </View>
                                     ) : null}
 
                                     {p.estado_pedido === "agendado" ? (
                                         <Pressable
-                                            style={styles.botonCancelar}
+                                            style={comunes.botonContorno}
                                             onPress={() => cancelar(p.pedido_id)}
                                         >
-                                            <Text style={styles.botonCancelarTexto}>Cancelar pedido</Text>
+                                            <Text style={comunes.botonContornoTexto}>Cancelar pedido</Text>
                                         </Pressable>
                                     ) : null}
                                 </View>
@@ -262,59 +270,18 @@ export default function PedidosScreen() {
                 titulo="Nuevo pedido"
                 onCerrar={() => setPanelAbierto(false)}
             >
-                <NuevoPedido onGuardado={alGuardar} />
+                {panelAbierto ? <NuevoPedido onGuardado={alGuardar} /> : null}
+            </Panel>
+
+            <Panel
+                visible={editando !== ""}
+                titulo="Editar pedido"
+                onCerrar={() => setEditando("")}
+            >
+                {editando !== "" ? (
+                    <NuevoPedido pedidoId={editando} onGuardado={alGuardar} />
+                ) : null}
             </Panel>
         </ScrollView>
     );
 }
-
-const styles = StyleSheet.create({
-    container: { padding: 16 },
-    error: { color: "#E63946", marginTop: 12, textAlign: "center" },
-    vacio: { color: "#78716C", textAlign: "center", marginTop: 20 },
-    tarjeta: {
-        backgroundColor: "white",
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: "#E7E5E4",
-        padding: 14,
-        marginBottom: 10,
-    },
-    filaSuperior: { flexDirection: "row", justifyContent: "space-between" },
-    cliente: { fontSize: 17, fontWeight: "bold", color: "#1C1917" },
-    total: { fontSize: 17, fontWeight: "bold", color: "#1C1917" },
-    detalle: { fontSize: 13, color: "#78716C", marginTop: 4 },
-    badges: { flexDirection: "row", marginTop: 10 },
-    acciones: {
-        marginTop: 14,
-        borderTopWidth: 1,
-        borderTopColor: "#E7E5E4",
-        paddingTop: 12,
-    },
-    input: {
-        backgroundColor: "#FAFAF9",
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: "#E7E5E4",
-        padding: 12,
-        marginTop: 8,
-        fontSize: 16,
-    },
-    botonAccion: {
-        backgroundColor: "#1C1917",
-        borderRadius: 12,
-        padding: 12,
-        marginTop: 10,
-        alignItems: "center",
-    },
-    botonAccionTexto: { color: "#FAFAF9", fontWeight: "bold", fontSize: 15 },
-    botonCancelar: {
-        borderRadius: 12,
-        padding: 12,
-        marginTop: 10,
-        alignItems: "center",
-        borderWidth: 1,
-        borderColor: "#E63946",
-    },
-    botonCancelarTexto: { color: "#E63946", fontWeight: "bold", fontSize: 15 },
-});

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
+import { View, Text, TextInput, Pressable } from "react-native";
 import { supabase } from "../lib/supabase";
 import Selector from "./Selector";
 import { pesos, hoy } from "../lib/formato";
+import { comunes } from "../styles/comunes";
+import { styles } from "../styles/NuevaCompra.styles";
 
 type Material = { id: string; nombre: string; unidad: string };
 type Linea = {
@@ -173,19 +175,19 @@ export default function NuevaCompra({ onGuardado }: Props) {
         <View>
             <Text style={styles.subtitulo}>Datos de la factura</Text>
             <TextInput
-                style={styles.input}
+                style={comunes.input}
                 placeholder="Fecha (AAAA-MM-DD)"
                 value={fecha}
                 onChangeText={setFecha}
             />
             <TextInput
-                style={styles.input}
+                style={comunes.input}
                 placeholder="Lugar o proveedor (obligatorio)"
                 value={proveedor}
                 onChangeText={setProveedor}
             />
             <TextInput
-                style={styles.input}
+                style={comunes.input}
                 placeholder="Observación (obligatoria)"
                 value={observacion}
                 onChangeText={setObservacion}
@@ -221,7 +223,7 @@ export default function NuevaCompra({ onGuardado }: Props) {
             ) : null}
 
             <TextInput
-                style={styles.input}
+                style={comunes.input}
                 placeholder={
                     materialElegido ? `Cantidad (en ${nombreUnidad})` : "Cantidad"
                 }
@@ -230,15 +232,15 @@ export default function NuevaCompra({ onGuardado }: Props) {
                 keyboardType="numeric"
             />
             <TextInput
-                style={styles.input}
+                style={comunes.input}
                 placeholder="Total pagado por este producto"
                 value={totalPagado}
                 onChangeText={setTotalPagado}
                 keyboardType="numeric"
             />
 
-            <Pressable style={styles.botonSecundario} onPress={agregarLinea}>
-                <Text style={styles.botonSecundarioTexto}>Agregar a la factura</Text>
+            <Pressable style={comunes.botonOscuro} onPress={agregarLinea}>
+                <Text style={comunes.botonOscuroTexto}>Agregar a la factura</Text>
             </Pressable>
 
             {lineas.map((l, posicion) => (
@@ -263,68 +265,10 @@ export default function NuevaCompra({ onGuardado }: Props) {
                 <Text style={styles.resumen}>Total de la factura: {pesos(totalFactura)}</Text>
             ) : null}
 
-            <Pressable style={styles.boton} onPress={guardar}>
-                <Text style={styles.botonTexto}>Guardar compra</Text>
+            <Pressable style={comunes.botonPrimario} onPress={guardar}>
+                <Text style={comunes.botonPrimarioTexto}>Guardar compra</Text>
             </Pressable>
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? <Text style={comunes.error}>{error}</Text> : null}
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    subtitulo: { fontSize: 16, fontWeight: "bold", color: "#1C1917", marginTop: 16 },
-    input: {
-        backgroundColor: "white",
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: "#E7E5E4",
-        padding: 14,
-        marginTop: 12,
-        fontSize: 16,
-    },
-    chips: { flexDirection: "row", marginTop: 12 },
-    chip: {
-        backgroundColor: "white",
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: "#E7E5E4",
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        marginRight: 8,
-    },
-    chipActivo: { backgroundColor: "#1C1917", borderColor: "#1C1917" },
-    chipTexto: { color: "#1C1917", fontWeight: "bold" },
-    chipTextoActivo: { color: "#FAFAF9" },
-    boton: {
-        backgroundColor: "#EA580C",
-        borderRadius: 12,
-        padding: 14,
-        marginTop: 20,
-        alignItems: "center",
-    },
-    botonTexto: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
-    botonSecundario: {
-        backgroundColor: "#1C1917",
-        borderRadius: 12,
-        padding: 14,
-        marginTop: 16,
-        alignItems: "center",
-    },
-    botonSecundarioTexto: { color: "#FAFAF9", fontSize: 16, fontWeight: "bold" },
-    linea: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "white",
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: "#E7E5E4",
-        padding: 12,
-        marginTop: 8,
-    },
-    quitar: { color: "#E63946", fontSize: 18, paddingHorizontal: 8 },
-    resumen: { marginTop: 16, color: "#1C1917", fontWeight: "bold", fontSize: 18 },
-    error: { color: "#E63946", marginTop: 12, textAlign: "center" },
-    nombre: { fontSize: 16, color: "#1C1917", fontWeight: "bold" },
-    detalle: { fontSize: 13, color: "#78716C", marginTop: 2 },
-    total: { fontSize: 16, fontWeight: "bold", color: "#1C1917" },
-});
