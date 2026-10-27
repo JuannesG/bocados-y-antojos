@@ -1,18 +1,13 @@
 import { useEffect, useState } from "react";
-import {
-    View,
-    Text,
-    TextInput,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-} from "react-native";
+import { View, Text, TextInput, Pressable, ScrollView } from "react-native";
 import { supabase } from "../lib/supabase";
 import { limpiar } from "../lib/formato";
 import Badge from "../components/Badge";
 import Panel from "../components/Panel";
 import BarraAcciones from "../components/BarraAcciones";
 import Filtros from "../components/Filtros";
+import { comunes } from "../styles/comunes";
+import { styles } from "../styles/Materiales.styles";
 
 type Fila = {
     material_id: string;
@@ -34,6 +29,14 @@ export default function MaterialesScreen() {
     const [unidad, setUnidad] = useState("");
     const [categoria, setCategoria] = useState<"ingrediente" | "comprado">("ingrediente");
     const [minimo, setMinimo] = useState("");
+
+    const [abierto, setAbierto] = useState("");
+    const [nombreEdit, setNombreEdit] = useState("");
+    const [minimoEdit, setMinimoEdit] = useState("");
+    const [stockReal, setStockReal] = useState("");
+    const [motivo, setMotivo] = useState("");
+    const [confirmando, setConfirmando] = useState("");
+
     const [error, setError] = useState("");
 
     async function cargar() {
@@ -80,9 +83,92 @@ export default function MaterialesScreen() {
         cargar();
     }
 
+    function abrir(m: Fila) {
+        if (abierto === m.material_id) {
+            setAbierto("");
+            return;
+        }
+        setAbierto(m.material_id);
+        setNombreEdit(m.nombre);
+        setMinimoEdit(String(Number(m.stock_minimo)));
+        setStockReal("");
+        setMotivo("");
+        setConfirmando("");
+        setError("");
+    }
+
+    async function guardarCambios(m: Fila) {
+        const minimoNum = Number(minimoEdit.replace(",", ".")) || 0;
+        if (!nombreEdit.trim()) {
+            setError("El nombre no puede quedar vacío");
+            return;
+        }
+        if (minimoNum < 0) {
+            setError("El stock mínimo no puede ser negativo");
+            return;
+        }
+        const { error: fallo } = await supabase
+            .from("materiales")
+            .update({ nombre: nombreEdit.trim(), stock_minimo: minimoNum })
+            .eq("id", m.material_id);
+        if (fallo) {
+            setError("No se pudieron guardar los cambios");
+            return;
+        }
+        setError("");
+        cargar();
+    }
+
+    async function ajustar(m: Fila) {
+        const real = Number(stockReal.replace(",", "."));
+        if (stockReal.trim() === "" || isNaN(real) || real < 0) {
+            setError("Escribe cuánto hay realmente (0 o más)");
+            return;
+        }
+        if (!motivo.trim()) {
+            setError("Escribe el motivo del ajuste");
+            return;
+        }
+        const diferencia = real - Number(m.stock);
+        if (diferencia === 0) {
+            setError("El stock real ya coincide con el del sistema");
+            return;
+        }
+        const { error: fallo } = await supabase.from("ajustes_inventario").insert({
+            material_id: m.material_id,
+            cantidad: diferencia,
+            motivo: motivo.trim(),
+        });
+        if (fallo) {
+            setError("No se pudo guardar el ajuste");
+            return;
+        }
+        setError("");
+        setStockReal("");
+        setMotivo("");
+        cargar();
+    }
+
+    async function eliminar(m: Fila) {
+        const { error: fallo } = await supabase
+            .from("materiales")
+            .delete()
+            .eq("id", m.material_id);
+        if (fallo) {
+            setError(
+                "No se puede eliminar: este material ya tiene compras o está en una receta."
+            );
+            setConfirmando("");
+            return;
+        }
+        setError("");
+        setConfirmando("");
+        setAbierto("");
+        cargar();
+    }
+
     const visibles = materiales.filter((m) => {
-        const coincide = limpiar(m.nombre).includes(limpiar(busqueda));
-        if (!coincide) return false;
+        if (!limpiar(m.nombre).includes(limpiar(busqueda))) return false;
         if (filtro === "bajo") return esBajo(m);
         if (filtro === "normal") return !esBajo(m);
         return true;
@@ -105,30 +191,106 @@ export default function MaterialesScreen() {
             />
             <Filtros opciones={opcionesFiltro} valor={filtro} onCambio={setFiltro} />
 
-            <View style={styles.tabla}>
-                <View style={styles.cabecera}>
-                    <Text style={[styles.cabeceraTexto, { flex: 2 }]}>Material</Text>
-                    <Text style={[styles.cabeceraTexto, { flex: 1.2, textAlign: "right" }]}>Cantidad</Text>
-                    <Text style={[styles.cabeceraTexto, { flex: 1, paddingLeft: 10 }]}>Unidad</Text>
-                    <Text style={[styles.cabeceraTexto, { flex: 1.2 }]}>Estado</Text>
+            {error && !panelAbierto ? <Text style={comunes.error}>{error}</Text> : null}
+
+            <View style={comunes.tabla}>
+                <View style={comunes.cabecera}>
+                    <Text style={[comunes.cabeceraTexto, { flex: 2 }]}>Material</Text>
+                    <Text style={[comunes.cabeceraTexto, { flex: 1.2, textAlign: "right" }]}>Cantidad</Text>
+                    <Text style={[comunes.cabeceraTexto, { flex: 1, paddingLeft: 10 }]}>Unidad</Text>
+                    <Text style={[comunes.cabeceraTexto, { flex: 1.2 }]}>Estado</Text>
                 </View>
 
                 {visibles.length === 0 ? (
-                    <Text style={styles.vacio}>No hay materiales para mostrar</Text>
+                    <Text style={comunes.vacio}>No hay materiales para mostrar</Text>
                 ) : (
                     visibles.map((m) => (
-                        <View key={m.material_id} style={styles.fila}>
-                            <Text style={[styles.nombre, { flex: 2 }]}>{m.nombre}</Text>
-                            <Text style={[styles.cantidad, { flex: 1.2 }]}>
-                                {Number(m.stock).toLocaleString("es-CO")}
-                            </Text>
-                            <Text style={[styles.unidad, { flex: 1 }]}>{m.unidad}</Text>
-                            <View style={{ flex: 1.2, alignItems: "flex-start" }}>
-                                <Badge
-                                    texto={esBajo(m) ? "Bajo" : "Normal"}
-                                    tono={esBajo(m) ? "rojo" : "verde"}
-                                />
-                            </View>
+                        <View key={m.material_id} style={styles.bloque}>
+                            <Pressable style={styles.fila} onPress={() => abrir(m)}>
+                                <Text style={[styles.nombre, { flex: 2 }]}>{m.nombre}</Text>
+                                <Text style={[styles.cantidad, { flex: 1.2 }]}>
+                                    {Number(m.stock).toLocaleString("es-CO")}
+                                </Text>
+                                <Text style={[styles.unidad, { flex: 1 }]}>{m.unidad}</Text>
+                                <View style={{ flex: 1.2, alignItems: "flex-start" }}>
+                                    <Badge
+                                        texto={esBajo(m) ? "Bajo" : "Normal"}
+                                        tono={esBajo(m) ? "rojo" : "verde"}
+                                    />
+                                </View>
+                            </Pressable>
+
+                            {abierto === m.material_id ? (
+                                <View style={styles.detalleAbierto}>
+                                    <Text style={styles.subtitulo}>Editar material</Text>
+                                    <TextInput
+                                        style={comunes.input}
+                                        placeholder="Nombre"
+                                        value={nombreEdit}
+                                        onChangeText={setNombreEdit}
+                                    />
+                                    <TextInput
+                                        style={comunes.input}
+                                        placeholder="Avisar cuando quede menos de..."
+                                        value={minimoEdit}
+                                        onChangeText={setMinimoEdit}
+                                        keyboardType="numeric"
+                                    />
+                                    <Text style={styles.nota}>
+                                        La unidad ({m.unidad}) no se puede cambiar porque tus compras y
+                                        recetas ya la usan.
+                                    </Text>
+                                    <Pressable style={comunes.botonOscuro} onPress={() => guardarCambios(m)}>
+                                        <Text style={comunes.botonOscuroTexto}>Guardar cambios</Text>
+                                    </Pressable>
+
+                                    <Text style={styles.subtitulo}>Ajustar stock</Text>
+                                    <Text style={styles.nota}>
+                                        El sistema dice que hay {Number(m.stock).toLocaleString("es-CO")}{" "}
+                                        {m.unidad}. Escribe cuánto hay de verdad.
+                                    </Text>
+                                    <TextInput
+                                        style={comunes.input}
+                                        placeholder={`Stock real (en ${m.unidad})`}
+                                        value={stockReal}
+                                        onChangeText={setStockReal}
+                                        keyboardType="numeric"
+                                    />
+                                    <TextInput
+                                        style={comunes.input}
+                                        placeholder="Motivo (ej. conteo, se dañó, regalo)"
+                                        value={motivo}
+                                        onChangeText={setMotivo}
+                                    />
+                                    <Pressable style={comunes.botonOscuro} onPress={() => ajustar(m)}>
+                                        <Text style={comunes.botonOscuroTexto}>Aplicar ajuste</Text>
+                                    </Pressable>
+
+                                    {confirmando === m.material_id ? (
+                                        <View>
+                                            <Text style={styles.aviso}>
+                                                Se eliminará este material. Solo se puede si no tiene compras
+                                                ni está en una receta. ¿Seguro?
+                                            </Text>
+                                            <View style={styles.botones}>
+                                                <Pressable style={comunes.botonPeligro} onPress={() => eliminar(m)}>
+                                                    <Text style={comunes.botonPeligroTexto}>Sí, eliminar</Text>
+                                                </Pressable>
+                                                <Pressable style={comunes.botonNeutro} onPress={() => setConfirmando("")}>
+                                                    <Text style={comunes.botonNeutroTexto}>No</Text>
+                                                </Pressable>
+                                            </View>
+                                        </View>
+                                    ) : (
+                                        <Pressable
+                                            style={comunes.botonContorno}
+                                            onPress={() => setConfirmando(m.material_id)}
+                                        >
+                                            <Text style={comunes.botonContornoTexto}>Eliminar material</Text>
+                                        </Pressable>
+                                    )}
+                                </View>
+                            ) : null}
                         </View>
                     ))
                 )}
@@ -140,13 +302,13 @@ export default function MaterialesScreen() {
                 onCerrar={() => setPanelAbierto(false)}
             >
                 <TextInput
-                    style={styles.input}
+                    style={comunes.input}
                     placeholder="Nombre (ej. lechuga)"
                     value={nombre}
                     onChangeText={setNombre}
                 />
                 <TextInput
-                    style={styles.input}
+                    style={comunes.input}
                     placeholder="Unidad (ej. unidad, g, lonja)"
                     value={unidad}
                     onChangeText={setUnidad}
@@ -173,80 +335,18 @@ export default function MaterialesScreen() {
                 </View>
 
                 <TextInput
-                    style={styles.input}
+                    style={comunes.input}
                     placeholder="Avisar cuando quede menos de... (opcional)"
                     value={minimo}
                     onChangeText={setMinimo}
                     keyboardType="numeric"
                 />
 
-                <Pressable style={styles.boton} onPress={agregar}>
-                    <Text style={styles.botonTexto}>Guardar material</Text>
+                <Pressable style={comunes.botonPrimario} onPress={agregar}>
+                    <Text style={comunes.botonPrimarioTexto}>Guardar material</Text>
                 </Pressable>
-                {error ? <Text style={styles.error}>{error}</Text> : null}
+                {error && panelAbierto ? <Text style={comunes.error}>{error}</Text> : null}
             </Panel>
         </ScrollView>
     );
 }
-
-const styles = StyleSheet.create({
-    container: { padding: 16 },
-    tabla: {
-        backgroundColor: "white",
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: "#E7E5E4",
-        marginTop: 14,
-        overflow: "hidden",
-    },
-    cabecera: {
-        flexDirection: "row",
-        paddingVertical: 10,
-        paddingHorizontal: 14,
-        backgroundColor: "#F5F5F4",
-    },
-    cabeceraTexto: { fontSize: 12, fontWeight: "bold", color: "#78716C" },
-    fila: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: 12,
-        paddingHorizontal: 14,
-        borderTopWidth: 1,
-        borderTopColor: "#F5F5F4",
-    },
-    nombre: { fontSize: 15, color: "#1C1917" },
-    cantidad: { fontSize: 15, fontWeight: "bold", color: "#1C1917", textAlign: "right" },
-    unidad: { fontSize: 14, color: "#78716C", paddingLeft: 10 },
-    vacio: { padding: 20, textAlign: "center", color: "#78716C" },
-    input: {
-        backgroundColor: "white",
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: "#E7E5E4",
-        padding: 14,
-        marginTop: 12,
-        fontSize: 16,
-    },
-    selector: {
-        flexDirection: "row",
-        marginTop: 12,
-        backgroundColor: "white",
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: "#E7E5E4",
-        padding: 4,
-    },
-    opcion: { flex: 1, padding: 10, borderRadius: 10, alignItems: "center" },
-    opcionActiva: { backgroundColor: "#1C1917" },
-    opcionTexto: { color: "#1C1917", fontWeight: "bold" },
-    opcionTextoActivo: { color: "#FAFAF9" },
-    boton: {
-        backgroundColor: "#EA580C",
-        borderRadius: 12,
-        padding: 14,
-        marginTop: 20,
-        alignItems: "center",
-    },
-    botonTexto: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
-    error: { color: "#E63946", marginTop: 12, textAlign: "center" },
-});

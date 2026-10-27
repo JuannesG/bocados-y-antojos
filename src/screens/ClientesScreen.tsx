@@ -1,16 +1,11 @@
 import { useEffect, useState } from "react";
-import {
-    View,
-    Text,
-    TextInput,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-} from "react-native";
+import { View, Text, TextInput, Pressable, ScrollView } from "react-native";
 import { supabase } from "../lib/supabase";
 import { limpiar } from "../lib/formato";
 import Panel from "../components/Panel";
 import BarraAcciones from "../components/BarraAcciones";
+import { comunes } from "../styles/comunes";
+import { styles } from "../styles/Clientes.styles";
 
 type Cliente = { id: string; nombre: string; telefono: string | null };
 
@@ -18,9 +13,16 @@ export default function ClientesScreen() {
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [conteo, setConteo] = useState<Record<string, number>>({});
     const [busqueda, setBusqueda] = useState("");
+
     const [panelAbierto, setPanelAbierto] = useState(false);
     const [nombre, setNombre] = useState("");
     const [telefono, setTelefono] = useState("");
+
+    const [abierto, setAbierto] = useState("");
+    const [nombreEdit, setNombreEdit] = useState("");
+    const [telefonoEdit, setTelefonoEdit] = useState("");
+    const [confirmando, setConfirmando] = useState("");
+
     const [error, setError] = useState("");
 
     async function cargar() {
@@ -68,6 +70,54 @@ export default function ClientesScreen() {
         cargar();
     }
 
+    function abrir(c: Cliente) {
+        if (abierto === c.id) {
+            setAbierto("");
+            return;
+        }
+        setAbierto(c.id);
+        setNombreEdit(c.nombre);
+        setTelefonoEdit(c.telefono ?? "");
+        setConfirmando("");
+        setError("");
+    }
+
+    async function guardarCambios(c: Cliente) {
+        if (!nombreEdit.trim()) {
+            setError("El nombre no puede quedar vacío");
+            return;
+        }
+        const { error: fallo } = await supabase
+            .from("clientes")
+            .update({
+                nombre: nombreEdit.trim(),
+                telefono: telefonoEdit.trim() || null,
+            })
+            .eq("id", c.id);
+        if (fallo) {
+            setError("No se pudieron guardar los cambios");
+            return;
+        }
+        setError("");
+        cargar();
+    }
+
+    async function eliminar(c: Cliente) {
+        const { error: fallo } = await supabase
+            .from("clientes")
+            .delete()
+            .eq("id", c.id);
+        if (fallo) {
+            setError("No se puede eliminar: este cliente ya tiene pedidos.");
+            setConfirmando("");
+            return;
+        }
+        setError("");
+        setConfirmando("");
+        setAbierto("");
+        cargar();
+    }
+
     const visibles = clientes.filter((c) => {
         const texto = limpiar(busqueda);
         return (
@@ -86,23 +136,73 @@ export default function ClientesScreen() {
                 onBoton={() => setPanelAbierto(true)}
             />
 
-            <View style={styles.tabla}>
-                <View style={styles.cabecera}>
-                    <Text style={[styles.cabeceraTexto, { flex: 2 }]}>Nombre</Text>
-                    <Text style={[styles.cabeceraTexto, { flex: 1.6 }]}>Teléfono</Text>
-                    <Text style={[styles.cabeceraTexto, { flex: 1, textAlign: "right" }]}>Pedidos</Text>
+            {error && !panelAbierto ? <Text style={comunes.error}>{error}</Text> : null}
+
+            <View style={comunes.tabla}>
+                <View style={comunes.cabecera}>
+                    <Text style={[comunes.cabeceraTexto, { flex: 2 }]}>Nombre</Text>
+                    <Text style={[comunes.cabeceraTexto, { flex: 1.6 }]}>Teléfono</Text>
+                    <Text style={[comunes.cabeceraTexto, { flex: 1, textAlign: "right" }]}>Pedidos</Text>
                 </View>
 
                 {visibles.length === 0 ? (
-                    <Text style={styles.vacio}>No hay clientes para mostrar</Text>
+                    <Text style={comunes.vacio}>No hay clientes para mostrar</Text>
                 ) : (
                     visibles.map((c) => (
-                        <View key={c.id} style={styles.fila}>
-                            <Text style={[styles.nombre, { flex: 2 }]}>{c.nombre}</Text>
-                            <Text style={[styles.telefono, { flex: 1.6 }]}>
-                                {c.telefono ?? "—"}
-                            </Text>
-                            <Text style={[styles.pedidos, { flex: 1 }]}>{conteo[c.id] ?? 0}</Text>
+                        <View key={c.id} style={styles.bloque}>
+                            <Pressable style={styles.fila} onPress={() => abrir(c)}>
+                                <Text style={[styles.nombre, { flex: 2 }]}>{c.nombre}</Text>
+                                <Text style={[styles.telefono, { flex: 1.6 }]}>
+                                    {c.telefono ?? "—"}
+                                </Text>
+                                <Text style={[styles.pedidos, { flex: 1 }]}>{conteo[c.id] ?? 0}</Text>
+                            </Pressable>
+
+                            {abierto === c.id ? (
+                                <View style={styles.detalleAbierto}>
+                                    <Text style={styles.subtitulo}>Editar cliente</Text>
+                                    <TextInput
+                                        style={comunes.input}
+                                        placeholder="Nombre"
+                                        value={nombreEdit}
+                                        onChangeText={setNombreEdit}
+                                    />
+                                    <TextInput
+                                        style={comunes.input}
+                                        placeholder="Teléfono (opcional)"
+                                        value={telefonoEdit}
+                                        onChangeText={setTelefonoEdit}
+                                        keyboardType="phone-pad"
+                                    />
+                                    <Pressable style={comunes.botonOscuro} onPress={() => guardarCambios(c)}>
+                                        <Text style={comunes.botonOscuroTexto}>Guardar cambios</Text>
+                                    </Pressable>
+
+                                    {confirmando === c.id ? (
+                                        <View>
+                                            <Text style={styles.aviso}>
+                                                Se eliminará este cliente. Solo se puede si no tiene
+                                                pedidos. ¿Seguro?
+                                            </Text>
+                                            <View style={styles.botones}>
+                                                <Pressable style={comunes.botonPeligro} onPress={() => eliminar(c)}>
+                                                    <Text style={comunes.botonPeligroTexto}>Sí, eliminar</Text>
+                                                </Pressable>
+                                                <Pressable style={comunes.botonNeutro} onPress={() => setConfirmando("")}>
+                                                    <Text style={comunes.botonNeutroTexto}>No</Text>
+                                                </Pressable>
+                                            </View>
+                                        </View>
+                                    ) : (
+                                        <Pressable
+                                            style={comunes.botonContorno}
+                                            onPress={() => setConfirmando(c.id)}
+                                        >
+                                            <Text style={comunes.botonContornoTexto}>Eliminar cliente</Text>
+                                        </Pressable>
+                                    )}
+                                </View>
+                            ) : null}
                         </View>
                     ))
                 )}
@@ -114,72 +214,23 @@ export default function ClientesScreen() {
                 onCerrar={() => setPanelAbierto(false)}
             >
                 <TextInput
-                    style={styles.input}
+                    style={comunes.input}
                     placeholder="Nombre del cliente"
                     value={nombre}
                     onChangeText={setNombre}
                 />
                 <TextInput
-                    style={styles.input}
+                    style={comunes.input}
                     placeholder="Teléfono (opcional)"
                     value={telefono}
                     onChangeText={setTelefono}
                     keyboardType="phone-pad"
                 />
-                <Pressable style={styles.boton} onPress={agregar}>
-                    <Text style={styles.botonTexto}>Guardar cliente</Text>
+                <Pressable style={comunes.botonPrimario} onPress={agregar}>
+                    <Text style={comunes.botonPrimarioTexto}>Guardar cliente</Text>
                 </Pressable>
-                {error ? <Text style={styles.error}>{error}</Text> : null}
+                {error && panelAbierto ? <Text style={comunes.error}>{error}</Text> : null}
             </Panel>
         </ScrollView>
     );
 }
-
-const styles = StyleSheet.create({
-    container: { padding: 16 },
-    tabla: {
-        backgroundColor: "white",
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: "#E7E5E4",
-        marginTop: 14,
-        overflow: "hidden",
-    },
-    cabecera: {
-        flexDirection: "row",
-        paddingVertical: 10,
-        paddingHorizontal: 14,
-        backgroundColor: "#F5F5F4",
-    },
-    cabeceraTexto: { fontSize: 12, fontWeight: "bold", color: "#78716C" },
-    fila: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: 12,
-        paddingHorizontal: 14,
-        borderTopWidth: 1,
-        borderTopColor: "#F5F5F4",
-    },
-    nombre: { fontSize: 15, fontWeight: "bold", color: "#1C1917" },
-    telefono: { fontSize: 14, color: "#78716C" },
-    pedidos: { fontSize: 15, fontWeight: "bold", color: "#1C1917", textAlign: "right" },
-    vacio: { padding: 20, textAlign: "center", color: "#78716C" },
-    input: {
-        backgroundColor: "white",
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: "#E7E5E4",
-        padding: 14,
-        marginTop: 12,
-        fontSize: 16,
-    },
-    boton: {
-        backgroundColor: "#EA580C",
-        borderRadius: 12,
-        padding: 14,
-        marginTop: 20,
-        alignItems: "center",
-    },
-    botonTexto: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
-    error: { color: "#E63946", marginTop: 12, textAlign: "center" },
-});

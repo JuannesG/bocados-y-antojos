@@ -1,0 +1,82 @@
+import { StyleSheet } from "react-native";
+import { colores } from "./tema";
+
+export const comunes = StyleSheet.create({
+    input: {
+        backgroundColor: colores.tarjeta,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colores.borde,
+        padding: 14,
+        marginTop: 12,
+        fontSize: 16,
+    },
+    botonPrimario: {
+        backgroundColor: colores.acento,
+        borderRadius: 12,
+        padding: 14,
+        marginTop: 20,
+        alignItems: "center",
+    },
+    botonPrimarioTexto: {
+        color: colores.textoSobreAcento,
+        fontSize: 16,
+        fontWeight: "bold",
+    },
+    botonOscuro: {
+        backgroundColor: colores.texto,
+        borderRadius: 12,
+        padding: 12,
+        marginTop: 10,
+        alignItems: "center",
+    },
+    botonOscuroTexto: { color: colores.textoSobreOscuro, fontWeight: "bold" },
+    botonPeligro: {
+        flex: 1,
+        backgroundColor: colores.peligro,
+        borderRadius: 12,
+        padding: 12,
+        alignItems: "center",
+    },
+    botonPeligroTexto: { color: "#FFFFFF", fontWeight: "bold" },
+    botonNeutro: {
+        flex: 1,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colores.borde,
+        backgroundColor: colores.tarjeta,
+        padding: 12,
+        alignItems: "center",
+    },
+    botonNeutroTexto: { color: colores.texto, fontWeight: "bold" },
+    botonContorno: {
+        marginTop: 14,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colores.peligro,
+        padding: 12,
+        alignItems: "center",
+    },
+    botonContornoTexto: { color: colores.peligro, fontWeight: "bold" },
+    error: { color: colores.peligro, marginTop: 12, textAlign: "center" },
+    vacio: { padding: 20, textAlign: "center", color: colores.textoSuave },
+    tabla: {
+        backgroundColor: colores.tarjeta,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: colores.borde,
+        marginTop: 14,
+        overflow: "hidden",
+    },
+    cabecera: {
+        flexDirection: "row",
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        backgroundColor: colores.fondoTabla,
+    },
+    cabeceraTexto: {
+        fontSize: 12,
+        fontWeight: "bold",
+        color: colores.textoSuave,
+    },
+});
