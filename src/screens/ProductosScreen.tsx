@@ -187,7 +187,7 @@ export default function ProductosScreen() {
                                         ))}
 
                                     <Text style={styles.subtitulo}>Cambiar precio de venta</Text>
-                                    <TextInput
+                                    <TextInput placeholderTextColor="#A8A29E"
                                         style={styles.input}
                                         placeholder="Nuevo precio"
                                         value={precioNuevo}

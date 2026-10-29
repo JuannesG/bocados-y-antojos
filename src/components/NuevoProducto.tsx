@@ -146,7 +146,7 @@ export default function NuevoProducto({ onGuardado }: Props) {
 
     return (
         <View>
-            <TextInput
+            <TextInput placeholderTextColor="#A8A29E"
                 style={styles.input}
                 placeholder="Nombre del producto"
                 value={nombre}
@@ -172,7 +172,7 @@ export default function NuevoProducto({ onGuardado }: Props) {
                 </Pressable>
             </View>
 
-            <TextInput
+            <TextInput placeholderTextColor="#A8A29E"
                 style={styles.input}
                 placeholder="Precio de venta (ej. 15000)"
                 value={precio}
@@ -199,7 +199,7 @@ export default function NuevoProducto({ onGuardado }: Props) {
                         placeholder="Elige un ingrediente"
                         opciones={opcionesIngredientes}
                     />
-                    <TextInput
+                    <TextInput placeholderTextColor="#A8A29E"
                         style={styles.input}
                         placeholder={
                             materialId

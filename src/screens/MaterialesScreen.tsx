@@ -223,13 +223,13 @@ export default function MaterialesScreen() {
                             {abierto === m.material_id ? (
                                 <View style={styles.detalleAbierto}>
                                     <Text style={styles.subtitulo}>Editar material</Text>
-                                    <TextInput
+                                    <TextInput placeholderTextColor="#A8A29E"
                                         style={comunes.input}
                                         placeholder="Nombre"
                                         value={nombreEdit}
                                         onChangeText={setNombreEdit}
                                     />
-                                    <TextInput
+                                    <TextInput placeholderTextColor="#A8A29E"
                                         style={comunes.input}
                                         placeholder="Avisar cuando quede menos de..."
                                         value={minimoEdit}
@@ -249,14 +249,14 @@ export default function MaterialesScreen() {
                                         El sistema dice que hay {Number(m.stock).toLocaleString("es-CO")}{" "}
                                         {m.unidad}. Escribe cuánto hay de verdad.
                                     </Text>
-                                    <TextInput
+                                    <TextInput placeholderTextColor="#A8A29E"
                                         style={comunes.input}
                                         placeholder={`Stock real (en ${m.unidad})`}
                                         value={stockReal}
                                         onChangeText={setStockReal}
                                         keyboardType="numeric"
                                     />
-                                    <TextInput
+                                    <TextInput placeholderTextColor="#A8A29E"
                                         style={comunes.input}
                                         placeholder="Motivo (ej. conteo, se dañó, regalo)"
                                         value={motivo}
@@ -301,13 +301,13 @@ export default function MaterialesScreen() {
                 titulo="Nuevo material"
                 onCerrar={() => setPanelAbierto(false)}
             >
-                <TextInput
+                <TextInput placeholderTextColor="#A8A29E"
                     style={comunes.input}
                     placeholder="Nombre (ej. lechuga)"
                     value={nombre}
                     onChangeText={setNombre}
                 />
-                <TextInput
+                <TextInput placeholderTextColor="#A8A29E"
                     style={comunes.input}
                     placeholder="Unidad (ej. unidad, g, lonja)"
                     value={unidad}
@@ -334,7 +334,7 @@ export default function MaterialesScreen() {
                     </Pressable>
                 </View>
 
-                <TextInput
+                <TextInput placeholderTextColor="#A8A29E"
                     style={comunes.input}
                     placeholder="Avisar cuando quede menos de... (opcional)"
                     value={minimo}

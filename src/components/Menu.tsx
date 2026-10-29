@@ -38,7 +38,7 @@ export default function Menu({ activa, onElegir, email, onSalir }: Props) {
         <View style={styles.menu}>
             <View style={styles.marca}>
                 <Image
-                    source={require("../../assets/Logo.png")}
+                    source={require("../../assets/logo.png")}
                     style={styles.logo}
                     resizeMode="contain"
                 />

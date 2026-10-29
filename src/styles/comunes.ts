@@ -10,6 +10,7 @@ export const comunes = StyleSheet.create({
         padding: 14,
         marginTop: 12,
         fontSize: 16,
+        color: colores.texto,
     },
     botonPrimario: {
         backgroundColor: colores.acento,

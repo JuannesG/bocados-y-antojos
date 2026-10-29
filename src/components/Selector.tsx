@@ -53,7 +53,7 @@ export default function Selector({ valor, onCambio, opciones, placeholder }: Pro
 
             {abierto ? (
                 <View style={styles.lista}>
-                    <TextInput
+                    <TextInput placeholderTextColor="#A8A29E"
                         style={styles.buscador}
                         placeholder="Escribe para buscar..."
                         value={busqueda}

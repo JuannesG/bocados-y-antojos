@@ -20,13 +20,9 @@ export default function App() {
     return () => escucha.subscription.unsubscribe();
   }, []);
 
-  if (!session) {
-    return <LoginScreen />;
-  }
-
   return (
     <SafeAreaProvider>
-      <Layout email={session.user.email ?? ""} />
+      {session ? <Layout email={session.user.email ?? ""} /> : <LoginScreen />}
     </SafeAreaProvider>
   );
 }

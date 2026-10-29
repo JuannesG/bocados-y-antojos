@@ -174,19 +174,19 @@ export default function NuevaCompra({ onGuardado }: Props) {
     return (
         <View>
             <Text style={styles.subtitulo}>Datos de la factura</Text>
-            <TextInput
+            <TextInput placeholderTextColor="#A8A29E"
                 style={comunes.input}
                 placeholder="Fecha (AAAA-MM-DD)"
                 value={fecha}
                 onChangeText={setFecha}
             />
-            <TextInput
+            <TextInput placeholderTextColor="#A8A29E"
                 style={comunes.input}
                 placeholder="Lugar o proveedor (obligatorio)"
                 value={proveedor}
                 onChangeText={setProveedor}
             />
-            <TextInput
+            <TextInput placeholderTextColor="#A8A29E"
                 style={comunes.input}
                 placeholder="Observación (obligatoria)"
                 value={observacion}
@@ -222,7 +222,7 @@ export default function NuevaCompra({ onGuardado }: Props) {
                 </View>
             ) : null}
 
-            <TextInput
+            <TextInput placeholderTextColor="#A8A29E"
                 style={comunes.input}
                 placeholder={
                     materialElegido ? `Cantidad (en ${nombreUnidad})` : "Cantidad"
@@ -231,7 +231,7 @@ export default function NuevaCompra({ onGuardado }: Props) {
                 onChangeText={setCantidad}
                 keyboardType="numeric"
             />
-            <TextInput
+            <TextInput placeholderTextColor="#A8A29E"
                 style={comunes.input}
                 placeholder="Total pagado por este producto"
                 value={totalPagado}

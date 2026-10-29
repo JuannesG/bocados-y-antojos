@@ -20,7 +20,7 @@ export default function BarraAcciones({
         <View style={styles.fila}>
             <View style={styles.buscador}>
                 <Ionicons name="search-outline" size={18} color="#78716C" />
-                <TextInput
+                <TextInput placeholderTextColor="#A8A29E"
                     style={styles.input}
                     placeholder={placeholder}
                     value={busqueda}

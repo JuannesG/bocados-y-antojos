@@ -238,7 +238,7 @@ export default function PedidosScreen() {
 
                                     {Number(p.saldo) > 0 ? (
                                         <View>
-                                            <TextInput
+                                            <TextInput placeholderTextColor="#A8A29E"
                                                 style={comunes.input}
                                                 placeholder="Monto del abono"
                                                 value={monto}

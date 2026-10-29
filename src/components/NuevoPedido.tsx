@@ -267,7 +267,7 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
                 placeholder="Elige un cliente"
                 opciones={clientes.map((c) => ({ valor: c.id, etiqueta: c.nombre }))}
             />
-            <TextInput
+            <TextInput placeholderTextColor="#A8A29E"
                 style={comunes.input}
                 placeholder="O escribe un cliente nuevo"
                 value={clienteNuevo}
@@ -277,7 +277,7 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
                 }}
             />
 
-            <TextInput
+            <TextInput placeholderTextColor="#A8A29E"
                 style={comunes.input}
                 placeholder="Fecha de entrega (AAAA-MM-DD)"
                 value={fecha}
@@ -294,14 +294,14 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
                     etiqueta: `${p.nombre} · ${pesos(p.precio_venta)}`,
                 }))}
             />
-            <TextInput
+            <TextInput placeholderTextColor="#A8A29E"
                 style={comunes.input}
                 placeholder="Cantidad"
                 value={cantidad}
                 onChangeText={setCantidad}
                 keyboardType="numeric"
             />
-            <TextInput
+            <TextInput placeholderTextColor="#A8A29E"
                 style={comunes.input}
                 placeholder="Precio por unidad (la promoción se aplica sola)"
                 value={precioLinea}
@@ -345,7 +345,7 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
                     desde el pedido.
                 </Text>
             ) : (
-                <TextInput
+                <TextInput placeholderTextColor="#A8A29E"
                     style={comunes.input}
                     placeholder="Abono recibido (opcional)"
                     value={abono}

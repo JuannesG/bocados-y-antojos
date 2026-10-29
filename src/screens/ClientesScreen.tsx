@@ -161,13 +161,13 @@ export default function ClientesScreen() {
                             {abierto === c.id ? (
                                 <View style={styles.detalleAbierto}>
                                     <Text style={styles.subtitulo}>Editar cliente</Text>
-                                    <TextInput
+                                    <TextInput placeholderTextColor="#A8A29E"
                                         style={comunes.input}
                                         placeholder="Nombre"
                                         value={nombreEdit}
                                         onChangeText={setNombreEdit}
                                     />
-                                    <TextInput
+                                    <TextInput placeholderTextColor="#A8A29E"
                                         style={comunes.input}
                                         placeholder="Teléfono (opcional)"
                                         value={telefonoEdit}
@@ -213,13 +213,13 @@ export default function ClientesScreen() {
                 titulo="Nuevo cliente"
                 onCerrar={() => setPanelAbierto(false)}
             >
-                <TextInput
+                <TextInput placeholderTextColor="#A8A29E"
                     style={comunes.input}
                     placeholder="Nombre del cliente"
                     value={nombre}
                     onChangeText={setNombre}
                 />
-                <TextInput
+                <TextInput placeholderTextColor="#A8A29E"
                     style={comunes.input}
                     placeholder="Teléfono (opcional)"
                     value={telefono}
