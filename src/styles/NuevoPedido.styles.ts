@@ -18,5 +18,13 @@ export const styles = StyleSheet.create({
     texto: { color: colores.texto, fontSize: 15 },
     detalle: { color: colores.textoSuave, fontSize: 12, marginTop: 2 },
     quitar: { color: colores.peligro, fontSize: 18, paddingHorizontal: 8 },
-    total: { marginTop: 16, color: colores.texto, fontWeight: "bold", fontSize: 18 },
+    resumen: {
+        marginTop: 16,
+        backgroundColor: colores.fondoTabla,
+        borderRadius: 12,
+        padding: 12,
+    },
+    subtotal: { color: colores.textoSuave, fontSize: 15 },
+    descuento: { color: colores.acento, fontSize: 15, fontWeight: "bold", marginTop: 4 },
+    total: { marginTop: 8, color: colores.texto, fontWeight: "bold", fontSize: 18 },
 });

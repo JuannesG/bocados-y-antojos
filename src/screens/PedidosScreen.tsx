@@ -19,6 +19,7 @@ type Pedido = {
     total: number;
     abono: number;
     saldo: number;
+    descuento: number;
 };
 
 const tonoPedido: Record<string, "neutro" | "verde" | "gris"> = {
@@ -48,7 +49,7 @@ export default function PedidosScreen() {
         const [res, items, prods] = await Promise.all([
             supabase
                 .from("pedidos_resumen")
-                .select("pedido_id, cliente, fecha_entrega, estado_pedido, estado_pago, total, abono, saldo")
+                .select("pedido_id, cliente, fecha_entrega, estado_pedido, estado_pago, total, abono, saldo, descuento")
                 .order("fecha_entrega", { ascending: false }),
             supabase.from("pedido_items").select("pedido_id, producto_id, cantidad"),
             supabase.from("productos").select("id, nombre"),
@@ -199,6 +200,9 @@ export default function PedidosScreen() {
                                     {Number(p.saldo) > 0 && p.estado_pedido !== "cancelado"
                                         ? ` · Debe ${pesos(p.saldo)}`
                                         : ""}
+                                    {Number(p.descuento) > 0 ? (
+                                        <Text style={styles.detalle}>Incluye promoción: −{pesos(p.descuento)}</Text>
+                                    ) : null}
                                 </Text>
                                 <View style={styles.badges}>
                                     <Badge

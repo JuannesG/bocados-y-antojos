@@ -3,11 +3,18 @@ import { View, Text, TextInput, Pressable } from "react-native";
 import { supabase } from "../lib/supabase";
 import Selector from "./Selector";
 import { pesos, hoy } from "../lib/formato";
+import { calcularDescuento } from "../lib/promociones";
+import type { Promo } from "../lib/promociones";
 import { comunes } from "../styles/comunes";
 import { styles } from "../styles/NuevoPedido.styles";
 
 type Cliente = { id: string; nombre: string };
-type Producto = { id: string; nombre: string; precio_venta: number };
+type Producto = {
+    id: string;
+    nombre: string;
+    precio_venta: number;
+    promo_grupo: string | null;
+};
 type Item = { productoId: string; cantidad: number; precio: number };
 
 type Props = { pedidoId?: string; onGuardado: () => void };
@@ -17,6 +24,7 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
 
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [productos, setProductos] = useState<Producto[]>([]);
+    const [promos, setPromos] = useState<Promo[]>([]);
 
     const [clienteId, setClienteId] = useState("");
     const [clienteNuevo, setClienteNuevo] = useState("");
@@ -34,17 +42,25 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
 
     useEffect(() => {
         async function cargar() {
-            const { data: cli } = await supabase
-                .from("clientes")
-                .select("id, nombre")
-                .order("nombre");
-            const { data: prod } = await supabase
-                .from("productos")
-                .select("id, nombre, precio_venta")
-                .eq("activo", true)
-                .order("nombre");
-            setClientes(cli ?? []);
-            setProductos(prod ?? []);
+            const [cli, prod, pro] = await Promise.all([
+                supabase.from("clientes").select("id, nombre").order("nombre"),
+                supabase
+                    .from("productos")
+                    .select("id, nombre, precio_venta, promo_grupo")
+                    .eq("activo", true)
+                    .order("nombre"),
+                supabase.from("promociones").select("grupo, nombre, unidades, precio"),
+            ]);
+            setClientes(cli.data ?? []);
+            setProductos(prod.data ?? []);
+            setPromos(
+                (pro.data ?? []).map((p) => ({
+                    grupo: p.grupo,
+                    nombre: p.nombre,
+                    unidades: Number(p.unidades),
+                    precio: Number(p.precio),
+                }))
+            );
 
             if (pedidoId) {
                 const { data: ped } = await supabase
@@ -78,7 +94,15 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
     const cant = Number(cantidad.replace(",", "."));
     const precioNum = Number(precioLinea.replace(",", "."));
     const abonoNum = Number(abono.replace(",", ".")) || 0;
-    const total = items.reduce((suma, i) => suma + i.cantidad * i.precio, 0);
+
+    const subtotal = items.reduce((suma, i) => suma + i.cantidad * i.precio, 0);
+    const promocion = calcularDescuento(
+        items,
+        (id) => productos.find((p) => p.id === id)?.promo_grupo ?? null,
+        promos
+    );
+    const descuento = promocion.total;
+    const total = subtotal - descuento;
 
     function nombreProducto(id: string) {
         return productos.find((p) => p.id === id)?.nombre ?? "—";
@@ -183,6 +207,7 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
                     cliente_id: idCliente,
                     fecha_entrega: fecha,
                     estado_pago: estadoPago,
+                    descuento,
                 })
                 .eq("id", pedidoId);
             if (falloPedido) {
@@ -202,6 +227,7 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
                 estado_pedido: "agendado",
                 estado_pago: estadoPago,
                 abono: abonoNum,
+                descuento,
             })
             .select("id")
             .single();
@@ -277,7 +303,7 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
             />
             <TextInput
                 style={comunes.input}
-                placeholder="Precio por unidad (puedes cambiarlo para una promoción)"
+                placeholder="Precio por unidad (la promoción se aplica sola)"
                 value={precioLinea}
                 onChangeText={setPrecioLinea}
                 keyboardType="numeric"
@@ -302,7 +328,15 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
             ))}
 
             {items.length > 0 ? (
-                <Text style={styles.total}>Total: {pesos(total)}</Text>
+                <View style={styles.resumen}>
+                    <Text style={styles.subtotal}>Subtotal: {pesos(subtotal)}</Text>
+                    {descuento > 0 ? (
+                        <Text style={styles.descuento}>
+                            Promoción ({promocion.detalle.join(", ")}): −{pesos(descuento)}
+                        </Text>
+                    ) : null}
+                    <Text style={styles.total}>Total: {pesos(total)}</Text>
+                </View>
             ) : null}
 
             {editando ? (
