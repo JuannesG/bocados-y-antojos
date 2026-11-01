@@ -1,14 +1,21 @@
 import { useEffect, useState } from "react";
 import { View, Text, TextInput, Pressable } from "react-native";
 import { supabase } from "../lib/supabase";
-import Selector from "./Selector";
-import { pesos, hoy } from "../lib/formato";
+import { pesos, hoy, limpiar } from "../lib/formato";
 import { comunes } from "../styles/comunes";
 import { styles } from "../styles/NuevaCompra.styles";
 
 type Material = { id: string; nombre: string; unidad: string };
+type Nuevo = {
+    nombre: string;
+    unidad: string;
+    categoria: "ingrediente" | "comprado";
+};
 type Linea = {
     materialId: string;
+    nuevo: Nuevo | null;
+    nombre: string;
+    unidadBase: string;
     cantidad: number;
     unidadCompra: string;
     equivalencia: number;
@@ -43,7 +50,11 @@ export default function NuevaCompra({ onGuardado }: Props) {
     const [proveedor, setProveedor] = useState("");
     const [observacion, setObservacion] = useState("");
 
+    const [busqueda, setBusqueda] = useState("");
     const [materialId, setMaterialId] = useState("");
+    const [modoNuevo, setModoNuevo] = useState(false);
+    const [nuevaUnidad, setNuevaUnidad] = useState("");
+    const [nuevaCategoria, setNuevaCategoria] = useState<"ingrediente" | "comprado">("ingrediente");
     const [unidadElegida, setUnidadElegida] = useState("");
     const [cantidad, setCantidad] = useState("");
     const [totalPagado, setTotalPagado] = useState("");
@@ -65,28 +76,50 @@ export default function NuevaCompra({ onGuardado }: Props) {
     const cant = Number(cantidad.replace(",", "."));
     const pagado = Number(totalPagado.replace(",", "."));
 
+    const texto = limpiar(busqueda);
     const materialElegido = materiales.find((m) => m.id === materialId);
-    const opciones = materialElegido ? unidadesDeCompra(materialElegido.unidad) : [];
-    const opcion = opciones.find((o) => o.valor === unidadElegida);
-    const nombreUnidad = opcion ? opcion.etiqueta : materialElegido?.unidad ?? "";
+    const coincidencias =
+        texto && !materialElegido && !modoNuevo
+            ? materiales.filter((m) => limpiar(m.nombre).includes(texto)).slice(0, 5)
+            : [];
+    const hayExacto = materiales.some((m) => limpiar(m.nombre) === texto);
+
+    const unidadBase = modoNuevo
+        ? nuevaUnidad.trim().toLowerCase()
+        : materialElegido?.unidad ?? "";
+    const opciones = unidadesDeCompra(unidadBase);
+    const activa = unidadElegida || unidadBase;
+    const opcion = opciones.find((o) => o.valor === activa);
+    const nombreUnidad = opcion ? opcion.etiqueta : unidadBase;
+    const listoParaCantidad = materialElegido !== undefined || modoNuevo;
     const totalFactura = lineas.reduce((suma, l) => suma + l.totalPagado, 0);
 
-    function nombreMaterial(id: string) {
-        return materiales.find((m) => m.id === id)?.nombre ?? "—";
-    }
-    function unidadMaterial(id: string) {
-        return materiales.find((m) => m.id === id)?.unidad ?? "";
+    function escribir(t: string) {
+        setBusqueda(t);
+        setMaterialId("");
+        setModoNuevo(false);
+        setUnidadElegida("");
     }
 
-    function elegirMaterial(id: string) {
-        setMaterialId(id);
-        const m = materiales.find((x) => x.id === id);
-        setUnidadElegida(m ? m.unidad : "");
+    function elegir(m: Material) {
+        setMaterialId(m.id);
+        setBusqueda(m.nombre);
+        setModoNuevo(false);
+        setUnidadElegida(m.unidad);
     }
 
     function agregarLinea() {
-        if (!materialElegido) {
-            setError("Elige un material");
+        const nombre = materialElegido ? materialElegido.nombre : busqueda.trim();
+        if (!nombre) {
+            setError("Escribe lo que compraste");
+            return;
+        }
+        if (!materialElegido && !modoNuevo) {
+            setError("Elige un material de la lista o crea uno nuevo");
+            return;
+        }
+        if (modoNuevo && !unidadBase) {
+            setError("Escribe la unidad del material nuevo");
             return;
         }
         if (!(cant > 0) || !(pagado > 0)) {
@@ -98,15 +131,24 @@ export default function NuevaCompra({ onGuardado }: Props) {
         setLineas([
             ...lineas,
             {
-                materialId: materialElegido.id,
+                materialId: materialElegido ? materialElegido.id : "",
+                nuevo: modoNuevo
+                    ? { nombre, unidad: unidadBase, categoria: nuevaCategoria }
+                    : null,
+                nombre,
+                unidadBase,
                 cantidad: cant,
-                unidadCompra: opcion ? opcion.valor : materialElegido.unidad,
+                unidadCompra: opcion ? opcion.valor : unidadBase,
                 equivalencia: opcion ? opcion.equivalencia : 1,
                 totalPagado: pagado,
             },
         ]);
 
+        setBusqueda("");
         setMaterialId("");
+        setModoNuevo(false);
+        setNuevaUnidad("");
+        setNuevaCategoria("ingrediente");
         setUnidadElegida("");
         setCantidad("");
         setTotalPagado("");
@@ -150,11 +192,42 @@ export default function NuevaCompra({ onGuardado }: Props) {
             return;
         }
 
+        const idsNuevos: Record<string, string> = {};
+        for (const l of lineas) {
+            const nuevo = l.nuevo;
+            if (!nuevo) continue;
+            const clave = limpiar(nuevo.nombre);
+            if (idsNuevos[clave]) continue;
+
+            const existente = materiales.find((m) => limpiar(m.nombre) === clave);
+            if (existente) {
+                idsNuevos[clave] = existente.id;
+                continue;
+            }
+
+            const { data, error: falloMaterial } = await supabase
+                .from("materiales")
+                .insert({
+                    nombre: nuevo.nombre,
+                    unidad: nuevo.unidad,
+                    categoria: nuevo.categoria,
+                })
+                .select("id")
+                .single();
+
+            if (falloMaterial || !data) {
+                await supabase.from("facturas").delete().eq("id", factura.id);
+                setError(`No se pudo crear el material "${nuevo.nombre}"`);
+                return;
+            }
+            idsNuevos[clave] = data.id;
+        }
+
         const { error: fallo } = await supabase.from("compras").insert(
             lineas.map((l) => ({
                 factura_id: factura.id,
                 fecha,
-                material_id: l.materialId,
+                material_id: l.nuevo ? idsNuevos[limpiar(l.nuevo.nombre)] : l.materialId,
                 cantidad: l.cantidad,
                 precio_unitario: l.totalPagado / l.cantidad,
                 unidad_compra: l.unidadCompra,
@@ -194,26 +267,97 @@ export default function NuevaCompra({ onGuardado }: Props) {
             />
 
             <Text style={styles.subtitulo}>Lo que compraste</Text>
-            <Selector
-                valor={materialId}
-                onCambio={elegirMaterial}
-                placeholder="Elige un material"
-                opciones={materiales.map((m) => ({ valor: m.id, etiqueta: m.nombre }))}
+            <TextInput placeholderTextColor="#A8A29E"
+                style={comunes.input}
+                placeholder="Escribe lo que compraste (ej. lechuga)"
+                value={busqueda}
+                onChangeText={escribir}
             />
 
-            {opciones.length > 0 ? (
-                <View style={styles.chips}>
-                    {opciones.map((o) => (
+            {coincidencias.length > 0 || (texto && !materialElegido && !modoNuevo && !hayExacto) ? (
+                <View style={styles.sugerencias}>
+                    {coincidencias.map((m) => (
+                        <Pressable key={m.id} style={styles.sugerencia} onPress={() => elegir(m)}>
+                            <Text style={styles.sugerenciaTexto}>
+                                {m.nombre} · {m.unidad}
+                            </Text>
+                        </Pressable>
+                    ))}
+                    {!hayExacto ? (
                         <Pressable
-                            key={o.valor}
-                            style={[styles.chip, o.valor === unidadElegida && styles.chipActivo]}
-                            onPress={() => setUnidadElegida(o.valor)}
+                            style={styles.sugerencia}
+                            onPress={() => {
+                                setModoNuevo(true);
+                                setMaterialId("");
+                            }}
+                        >
+                            <Text style={styles.crearTexto}>
+                                + Crear «{busqueda.trim()}» como material nuevo
+                            </Text>
+                        </Pressable>
+                    ) : null}
+                </View>
+            ) : null}
+
+            {materialElegido ? (
+                <Text style={styles.existe}>
+                    ✓ Ya está en tu inventario ({materialElegido.unidad})
+                </Text>
+            ) : null}
+
+            {modoNuevo ? (
+                <View>
+                    <Text style={styles.nuevoAviso}>
+                        Material nuevo: se creará al guardar la compra.
+                    </Text>
+                    <TextInput placeholderTextColor="#A8A29E"
+                        style={comunes.input}
+                        placeholder="Unidad (unidad, g, ml, lonja...)"
+                        value={nuevaUnidad}
+                        onChangeText={setNuevaUnidad}
+                        autoCapitalize="none"
+                    />
+                    <View style={styles.chips}>
+                        <Pressable
+                            style={[styles.chip, nuevaCategoria === "ingrediente" && styles.chipActivo]}
+                            onPress={() => setNuevaCategoria("ingrediente")}
                         >
                             <Text
                                 style={[
                                     styles.chipTexto,
-                                    o.valor === unidadElegida && styles.chipTextoActivo,
+                                    nuevaCategoria === "ingrediente" && styles.chipTextoActivo,
                                 ]}
+                            >
+                                Ingrediente
+                            </Text>
+                        </Pressable>
+                        <Pressable
+                            style={[styles.chip, nuevaCategoria === "comprado" && styles.chipActivo]}
+                            onPress={() => setNuevaCategoria("comprado")}
+                        >
+                            <Text
+                                style={[
+                                    styles.chipTexto,
+                                    nuevaCategoria === "comprado" && styles.chipTextoActivo,
+                                ]}
+                            >
+                                Comprado hecho
+                            </Text>
+                        </Pressable>
+                    </View>
+                </View>
+            ) : null}
+
+            {listoParaCantidad && opciones.length > 0 ? (
+                <View style={styles.chips}>
+                    {opciones.map((o) => (
+                        <Pressable
+                            key={o.valor}
+                            style={[styles.chip, o.valor === activa && styles.chipActivo]}
+                            onPress={() => setUnidadElegida(o.valor)}
+                        >
+                            <Text
+                                style={[styles.chipTexto, o.valor === activa && styles.chipTextoActivo]}
                             >
                                 {o.etiqueta}
                             </Text>
@@ -225,7 +369,9 @@ export default function NuevaCompra({ onGuardado }: Props) {
             <TextInput placeholderTextColor="#A8A29E"
                 style={comunes.input}
                 placeholder={
-                    materialElegido ? `Cantidad (en ${nombreUnidad})` : "Cantidad"
+                    listoParaCantidad && nombreUnidad
+                        ? `Cantidad (en ${nombreUnidad})`
+                        : "Cantidad"
                 }
                 value={cantidad}
                 onChangeText={setCantidad}
@@ -246,11 +392,14 @@ export default function NuevaCompra({ onGuardado }: Props) {
             {lineas.map((l, posicion) => (
                 <View key={posicion} style={styles.linea}>
                     <View style={{ flex: 1 }}>
-                        <Text style={styles.nombre}>{nombreMaterial(l.materialId)}</Text>
+                        <Text style={styles.nombre}>
+                            {l.nombre}
+                            {l.nuevo ? " (nuevo)" : ""}
+                        </Text>
                         <Text style={styles.detalle}>
                             {l.cantidad} {l.unidadCompra}
                             {l.equivalencia !== 1
-                                ? ` · entran ${l.cantidad * l.equivalencia} ${unidadMaterial(l.materialId)}`
+                                ? ` · entran ${l.cantidad * l.equivalencia} ${l.unidadBase}`
                                 : ""}
                         </Text>
                     </View>

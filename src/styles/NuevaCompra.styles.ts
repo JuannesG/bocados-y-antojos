@@ -8,6 +8,23 @@ export const styles = StyleSheet.create({
         color: colores.texto,
         marginTop: 16,
     },
+    sugerencias: {
+        backgroundColor: colores.tarjeta,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colores.borde,
+        marginTop: 4,
+        overflow: "hidden",
+    },
+    sugerencia: {
+        padding: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: colores.fondoTabla,
+    },
+    sugerenciaTexto: { fontSize: 15, color: colores.texto },
+    crearTexto: { fontSize: 15, color: colores.acento, fontWeight: "bold" },
+    existe: { fontSize: 13, color: "#16A34A", marginTop: 6 },
+    nuevoAviso: { fontSize: 13, color: colores.acento, marginTop: 6 },
     chips: { flexDirection: "row", marginTop: 12 },
     chip: {
         backgroundColor: colores.tarjeta,
