@@ -67,16 +67,6 @@ export default function ConfiguracionScreen({ email }: Props) {
                 {error ? <Text style={comunes.error}>{error}</Text> : null}
                 {ok ? <Text style={styles.ok}>{ok}</Text> : null}
             </View>
-
-            <View style={styles.tarjeta}>
-                <Text style={styles.titulo}>Sesión</Text>
-                <Pressable
-                    style={comunes.botonContorno}
-                    onPress={() => supabase.auth.signOut()}
-                >
-                    <Text style={comunes.botonContornoTexto}>Cerrar sesión</Text>
-                </Pressable>
-            </View>
         </ScrollView>
     );
 }
