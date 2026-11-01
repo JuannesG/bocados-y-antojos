@@ -18,6 +18,7 @@ import ProductosScreen from "../screens/ProductosScreen";
 import PedidosScreen from "../screens/PedidosScreen";
 import ReportesScreen from "../screens/ReportesScreen";
 import ClientesScreen from "../screens/ClientesScreen";
+import ConfiguracionScreen from "../screens/ConfiguracionScreen";
 
 type Props = { email: string };
 
@@ -51,6 +52,8 @@ export default function Layout({ email }: Props) {
                 return <ComprasScreen />;
             case "reportes":
                 return <ReportesScreen />;
+            case "configuracion":
+                return <ConfiguracionScreen email={email} />;
             default:
                 return (
                     <View style={styles.proximamente}>
