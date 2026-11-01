@@ -1,12 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-    View,
-    Text,
-    TextInput,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-} from "react-native";
+import { View, Text, Pressable, ScrollView } from "react-native";
 import { supabase } from "../lib/supabase";
 import { pesos, limpiar } from "../lib/formato";
 import Badge from "../components/Badge";
@@ -14,6 +7,8 @@ import Panel from "../components/Panel";
 import BarraAcciones from "../components/BarraAcciones";
 import Filtros from "../components/Filtros";
 import NuevoProducto from "../components/NuevoProducto";
+import { comunes } from "../styles/comunes";
+import { styles } from "../styles/Productos.styles";
 
 type Producto = {
     id: string;
@@ -33,8 +28,8 @@ export default function ProductosScreen() {
     const [busqueda, setBusqueda] = useState("");
     const [filtro, setFiltro] = useState("todos");
     const [panelAbierto, setPanelAbierto] = useState(false);
+    const [editando, setEditando] = useState("");
     const [abierto, setAbierto] = useState("");
-    const [precioNuevo, setPrecioNuevo] = useState("");
     const [confirmando, setConfirmando] = useState("");
     const [error, setError] = useState("");
 
@@ -70,25 +65,6 @@ export default function ProductosScreen() {
         cargar();
     }, []);
 
-    async function cambiarPrecio(id: string) {
-        const valor = Number(precioNuevo.replace(",", "."));
-        if (!(valor > 0)) {
-            setError("Escribe un precio mayor a 0");
-            return;
-        }
-        const { error: fallo } = await supabase
-            .from("productos")
-            .update({ precio_venta: valor })
-            .eq("id", id);
-        if (fallo) {
-            setError("No se pudo cambiar el precio");
-            return;
-        }
-        setError("");
-        setPrecioNuevo("");
-        cargar();
-    }
-
     async function desactivar(id: string) {
         const { error: fallo } = await supabase
             .from("productos")
@@ -106,6 +82,7 @@ export default function ProductosScreen() {
 
     function alGuardar() {
         setPanelAbierto(false);
+        setEditando("");
         cargar();
     }
 
@@ -133,17 +110,17 @@ export default function ProductosScreen() {
             />
             <Filtros opciones={opcionesFiltro} valor={filtro} onCambio={setFiltro} />
 
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? <Text style={comunes.error}>{error}</Text> : null}
 
-            <View style={styles.tabla}>
-                <View style={styles.cabecera}>
-                    <Text style={[styles.cabeceraTexto, { flex: 2.2 }]}>Producto</Text>
-                    <Text style={[styles.cabeceraTexto, { flex: 1.2, textAlign: "right" }]}>Precio</Text>
-                    <Text style={[styles.cabeceraTexto, { flex: 1.2, textAlign: "right" }]}>Costo</Text>
+            <View style={comunes.tabla}>
+                <View style={comunes.cabecera}>
+                    <Text style={[comunes.cabeceraTexto, { flex: 2.2 }]}>Producto</Text>
+                    <Text style={[comunes.cabeceraTexto, { flex: 1.2, textAlign: "right" }]}>Precio</Text>
+                    <Text style={[comunes.cabeceraTexto, { flex: 1.2, textAlign: "right" }]}>Costo</Text>
                 </View>
 
                 {visibles.length === 0 ? (
-                    <Text style={styles.vacio}>No hay productos para mostrar</Text>
+                    <Text style={comunes.vacio}>No hay productos para mostrar</Text>
                 ) : (
                     visibles.map((p) => (
                         <View key={p.id} style={styles.bloque}>
@@ -151,7 +128,6 @@ export default function ProductosScreen() {
                                 style={styles.fila}
                                 onPress={() => {
                                     setAbierto(abierto === p.id ? "" : p.id);
-                                    setPrecioNuevo("");
                                     setConfirmando("");
                                 }}
                             >
@@ -186,19 +162,11 @@ export default function ProductosScreen() {
                                             </View>
                                         ))}
 
-                                    <Text style={styles.subtitulo}>Cambiar precio de venta</Text>
-                                    <TextInput placeholderTextColor="#A8A29E"
-                                        style={styles.input}
-                                        placeholder="Nuevo precio"
-                                        value={precioNuevo}
-                                        onChangeText={setPrecioNuevo}
-                                        keyboardType="numeric"
-                                    />
                                     <Pressable
-                                        style={styles.botonOscuro}
-                                        onPress={() => cambiarPrecio(p.id)}
+                                        style={comunes.botonOscuro}
+                                        onPress={() => setEditando(p.id)}
                                     >
-                                        <Text style={styles.botonOscuroTexto}>Guardar precio</Text>
+                                        <Text style={comunes.botonOscuroTexto}>Editar producto</Text>
                                     </Pressable>
 
                                     {confirmando === p.id ? (
@@ -209,25 +177,25 @@ export default function ProductosScreen() {
                                             </Text>
                                             <View style={styles.botones}>
                                                 <Pressable
-                                                    style={styles.botonPeligro}
+                                                    style={comunes.botonPeligro}
                                                     onPress={() => desactivar(p.id)}
                                                 >
-                                                    <Text style={styles.botonPeligroTexto}>Sí, quitar</Text>
+                                                    <Text style={comunes.botonPeligroTexto}>Sí, quitar</Text>
                                                 </Pressable>
                                                 <Pressable
-                                                    style={styles.botonNeutro}
+                                                    style={comunes.botonNeutro}
                                                     onPress={() => setConfirmando("")}
                                                 >
-                                                    <Text style={styles.botonNeutroTexto}>No</Text>
+                                                    <Text style={comunes.botonNeutroTexto}>No</Text>
                                                 </Pressable>
                                             </View>
                                         </View>
                                     ) : (
                                         <Pressable
-                                            style={styles.botonEliminar}
+                                            style={comunes.botonContorno}
                                             onPress={() => setConfirmando(p.id)}
                                         >
-                                            <Text style={styles.botonEliminarTexto}>Quitar producto</Text>
+                                            <Text style={comunes.botonContornoTexto}>Quitar producto</Text>
                                         </Pressable>
                                     )}
                                 </View>
@@ -242,97 +210,18 @@ export default function ProductosScreen() {
                 titulo="Nuevo producto"
                 onCerrar={() => setPanelAbierto(false)}
             >
-                <NuevoProducto onGuardado={alGuardar} />
+                {panelAbierto ? <NuevoProducto onGuardado={alGuardar} /> : null}
+            </Panel>
+
+            <Panel
+                visible={editando !== ""}
+                titulo="Editar producto"
+                onCerrar={() => setEditando("")}
+            >
+                {editando !== "" ? (
+                    <NuevoProducto productoId={editando} onGuardado={alGuardar} />
+                ) : null}
             </Panel>
         </ScrollView>
     );
 }
-
-const styles = StyleSheet.create({
-    container: { padding: 16 },
-    error: { color: "#E63946", marginTop: 12, textAlign: "center" },
-    tabla: {
-        backgroundColor: "white",
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: "#E7E5E4",
-        marginTop: 14,
-        overflow: "hidden",
-    },
-    cabecera: {
-        flexDirection: "row",
-        paddingVertical: 10,
-        paddingHorizontal: 14,
-        backgroundColor: "#F5F5F4",
-    },
-    cabeceraTexto: { fontSize: 12, fontWeight: "bold", color: "#78716C" },
-    vacio: { padding: 20, textAlign: "center", color: "#78716C" },
-    bloque: { borderTopWidth: 1, borderTopColor: "#F5F5F4" },
-    fila: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: 12,
-        paddingHorizontal: 14,
-    },
-    nombre: { fontSize: 15, fontWeight: "bold", color: "#1C1917" },
-    precio: { fontSize: 15, fontWeight: "bold", color: "#1C1917", textAlign: "right" },
-    costo: { fontSize: 14, color: "#78716C", textAlign: "right" },
-    detalleAbierto: {
-        paddingHorizontal: 14,
-        paddingBottom: 14,
-        backgroundColor: "#FAFAF9",
-    },
-    subtitulo: { fontSize: 13, fontWeight: "bold", color: "#78716C", marginTop: 14 },
-    filaReceta: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        paddingVertical: 5,
-    },
-    recetaTexto: { fontSize: 14, color: "#1C1917" },
-    input: {
-        backgroundColor: "white",
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: "#E7E5E4",
-        padding: 12,
-        marginTop: 8,
-        fontSize: 16,
-    },
-    botonOscuro: {
-        backgroundColor: "#1C1917",
-        borderRadius: 12,
-        padding: 12,
-        marginTop: 10,
-        alignItems: "center",
-    },
-    botonOscuroTexto: { color: "#FAFAF9", fontWeight: "bold" },
-    aviso: { fontSize: 13, color: "#78716C", marginTop: 14 },
-    botones: { flexDirection: "row", gap: 10, marginTop: 10 },
-    botonPeligro: {
-        flex: 1,
-        backgroundColor: "#E63946",
-        borderRadius: 12,
-        padding: 12,
-        alignItems: "center",
-    },
-    botonPeligroTexto: { color: "#FFFFFF", fontWeight: "bold" },
-    botonNeutro: {
-        flex: 1,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: "#E7E5E4",
-        backgroundColor: "white",
-        padding: 12,
-        alignItems: "center",
-    },
-    botonNeutroTexto: { color: "#1C1917", fontWeight: "bold" },
-    botonEliminar: {
-        marginTop: 14,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: "#E63946",
-        padding: 12,
-        alignItems: "center",
-    },
-    botonEliminarTexto: { color: "#E63946", fontWeight: "bold" },
-});
