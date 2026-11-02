@@ -8,6 +8,7 @@ import Filtros from "../components/Filtros";
 import NuevaCompra from "../components/NuevaCompra";
 import { comunes } from "../styles/comunes";
 import { styles } from "../styles/Compras.styles";
+import { enRango, rangosCompras } from "../lib/rangos";
 
 type Factura = {
     id: string;
@@ -90,21 +91,17 @@ export default function ComprasScreen() {
         cargar();
     }
 
-    const esteMes = (f: Factura) => f.fecha >= inicioMes();
+    const texto = limpiar(busqueda);
+    const coincide = (f: Factura) =>
+        limpiar(f.proveedor).includes(texto) ||
+        limpiar(f.observacion).includes(texto);
 
-    const opcionesFiltro = [
-        { valor: "todas", etiqueta: "Todas", cantidad: facturas.length },
-        { valor: "mes", etiqueta: "Este mes", cantidad: facturas.filter(esteMes).length },
-    ];
+    const opcionesFiltro = rangosCompras.map((r) => ({
+        ...r,
+        cantidad: facturas.filter((f) => coincide(f) && enRango(f.fecha, r.valor)).length,
+    }));
 
-    const visibles = facturas.filter((f) => {
-        const texto = limpiar(busqueda);
-        const coincide =
-            limpiar(f.proveedor).includes(texto) ||
-            limpiar(f.observacion).includes(texto);
-        if (!coincide) return false;
-        return filtro === "todas" || esteMes(f);
-    });
+    const visibles = facturas.filter((f) => coincide(f) && enRango(f.fecha, filtro));
 
     return (
         <ScrollView contentContainerStyle={styles.container}>

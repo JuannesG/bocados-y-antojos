@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { View, Text, TextInput, Pressable } from "react-native";
 import { supabase } from "../lib/supabase";
 import Selector from "./Selector";
-import { pesos, hoy } from "../lib/formato";
+import { pesos, hoy, limpiar } from "../lib/formato";
 import { calcularDescuento } from "../lib/promociones";
 import type { Promo } from "../lib/promociones";
 import { comunes } from "../styles/comunes";
@@ -26,8 +26,9 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
     const [productos, setProductos] = useState<Producto[]>([]);
     const [promos, setPromos] = useState<Promo[]>([]);
 
+    const [busquedaCliente, setBusquedaCliente] = useState("");
     const [clienteId, setClienteId] = useState("");
-    const [clienteNuevo, setClienteNuevo] = useState("");
+    const [creandoCliente, setCreandoCliente] = useState(false);
     const [fecha, setFecha] = useState(hoy());
 
     const [productoId, setProductoId] = useState("");
@@ -75,6 +76,9 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
 
                 if (ped) {
                     setClienteId(ped.cliente_id);
+                    setBusquedaCliente(
+                        (cli.data ?? []).find((c) => c.id === ped.cliente_id)?.nombre ?? ""
+                    );
                     setFecha(ped.fecha_entrega ?? hoy());
                     setAbonoActual(Number(ped.abono));
                 }
@@ -95,6 +99,16 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
     const precioNum = Number(precioLinea.replace(",", "."));
     const abonoNum = Number(abono.replace(",", ".")) || 0;
 
+    const textoCliente = limpiar(busquedaCliente);
+    const clienteElegido = clientes.find((c) => c.id === clienteId);
+    const coincidencias =
+        textoCliente && !clienteElegido && !creandoCliente
+            ? clientes.filter((c) => limpiar(c.nombre).includes(textoCliente)).slice(0, 5)
+            : [];
+    const hayExacto = clientes.some((c) => limpiar(c.nombre) === textoCliente);
+    const mostrarSugerencias =
+        textoCliente !== "" && !clienteElegido && !creandoCliente;
+
     const subtotal = items.reduce((suma, i) => suma + i.cantidad * i.precio, 0);
     const promocion = calcularDescuento(
         items,
@@ -103,6 +117,18 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
     );
     const descuento = promocion.total;
     const total = subtotal - descuento;
+
+    function escribirCliente(t: string) {
+        setBusquedaCliente(t);
+        setClienteId("");
+        setCreandoCliente(false);
+    }
+
+    function elegirCliente(c: Cliente) {
+        setClienteId(c.id);
+        setBusquedaCliente(c.nombre);
+        setCreandoCliente(false);
+    }
 
     function nombreProducto(id: string) {
         return productos.find((p) => p.id === id)?.nombre ?? "—";
@@ -143,8 +169,12 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
     }
 
     async function guardar() {
-        if (!clienteId && !clienteNuevo.trim()) {
-            setError("Elige un cliente o escribe uno nuevo");
+        if (!clienteId && !(creandoCliente && busquedaCliente.trim())) {
+            setError(
+                busquedaCliente.trim()
+                    ? "Elige un cliente de la lista o crea uno nuevo"
+                    : "Escribe el cliente del pedido"
+            );
             return;
         }
         if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
@@ -167,17 +197,24 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
         setError("");
 
         let idCliente = clienteId;
-        if (clienteNuevo.trim()) {
-            const { data: nuevo, error: falloCliente } = await supabase
-                .from("clientes")
-                .insert({ nombre: clienteNuevo.trim() })
-                .select("id")
-                .single();
-            if (falloCliente || !nuevo) {
-                setError("No se pudo guardar el cliente");
-                return;
+        if (creandoCliente) {
+            const existente = clientes.find(
+                (c) => limpiar(c.nombre) === limpiar(busquedaCliente)
+            );
+            if (existente) {
+                idCliente = existente.id;
+            } else {
+                const { data: nuevo, error: falloCliente } = await supabase
+                    .from("clientes")
+                    .insert({ nombre: busquedaCliente.trim() })
+                    .select("id")
+                    .single();
+                if (falloCliente || !nuevo) {
+                    setError("No se pudo guardar el cliente");
+                    return;
+                }
+                idCliente = nuevo.id;
             }
-            idCliente = nuevo.id;
         }
 
         const estadoPago =
@@ -258,28 +295,51 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
     return (
         <View>
             <Text style={styles.etiqueta}>Cliente</Text>
-            <Selector
-                valor={clienteId}
-                onCambio={(id) => {
-                    setClienteId(id);
-                    setClienteNuevo("");
-                }}
-                placeholder="Elige un cliente"
-                opciones={clientes.map((c) => ({ valor: c.id, etiqueta: c.nombre }))}
-            />
-            <TextInput placeholderTextColor="#A8A29E"
+            <TextInput
                 style={comunes.input}
-                placeholder="O escribe un cliente nuevo"
-                value={clienteNuevo}
-                onChangeText={(texto) => {
-                    setClienteNuevo(texto);
-                    if (texto) setClienteId("");
-                }}
+                placeholder="Escribe el cliente (ej. Henry)"
+                placeholderTextColor="#A8A29E"
+                value={busquedaCliente}
+                onChangeText={escribirCliente}
             />
 
-            <TextInput placeholderTextColor="#A8A29E"
+            {mostrarSugerencias ? (
+                <View style={styles.sugerencias}>
+                    {coincidencias.map((c) => (
+                        <Pressable
+                            key={c.id}
+                            style={styles.sugerencia}
+                            onPress={() => elegirCliente(c)}
+                        >
+                            <Text style={styles.sugerenciaTexto}>{c.nombre}</Text>
+                        </Pressable>
+                    ))}
+                    {!hayExacto ? (
+                        <Pressable
+                            style={styles.sugerencia}
+                            onPress={() => setCreandoCliente(true)}
+                        >
+                            <Text style={styles.crearTexto}>
+                                + Crear «{busquedaCliente.trim()}» como cliente nuevo
+                            </Text>
+                        </Pressable>
+                    ) : null}
+                </View>
+            ) : null}
+
+            {clienteElegido ? (
+                <Text style={styles.existe}>✓ Cliente existente</Text>
+            ) : null}
+            {creandoCliente ? (
+                <Text style={styles.nuevoAviso}>
+                    Cliente nuevo: se creará al guardar el pedido.
+                </Text>
+            ) : null}
+
+            <TextInput
                 style={comunes.input}
                 placeholder="Fecha de entrega (AAAA-MM-DD)"
+                placeholderTextColor="#A8A29E"
                 value={fecha}
                 onChangeText={setFecha}
             />
@@ -294,16 +354,18 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
                     etiqueta: `${p.nombre} · ${pesos(p.precio_venta)}`,
                 }))}
             />
-            <TextInput placeholderTextColor="#A8A29E"
+            <TextInput
                 style={comunes.input}
                 placeholder="Cantidad"
+                placeholderTextColor="#A8A29E"
                 value={cantidad}
                 onChangeText={setCantidad}
                 keyboardType="numeric"
             />
-            <TextInput placeholderTextColor="#A8A29E"
+            <TextInput
                 style={comunes.input}
                 placeholder="Precio por unidad (la promoción se aplica sola)"
+                placeholderTextColor="#A8A29E"
                 value={precioLinea}
                 onChangeText={setPrecioLinea}
                 keyboardType="numeric"
@@ -345,9 +407,10 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
                     desde el pedido.
                 </Text>
             ) : (
-                <TextInput placeholderTextColor="#A8A29E"
+                <TextInput
                     style={comunes.input}
                     placeholder="Abono recibido (opcional)"
+                    placeholderTextColor="#A8A29E"
                     value={abono}
                     onChangeText={setAbono}
                     keyboardType="numeric"

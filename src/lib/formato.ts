@@ -34,3 +34,5 @@ export function limpiar(texto: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
 }
+
+export const numeroPedido = (n: number) => "#" + String(n).padStart(3, "0");

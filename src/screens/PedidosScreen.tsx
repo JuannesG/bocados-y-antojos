@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { View, Text, TextInput, Pressable, ScrollView } from "react-native";
 import { supabase } from "../lib/supabase";
-import { pesos, limpiar } from "../lib/formato";
+import { pesos, limpiar, numeroPedido } from "../lib/formato";
+import { enRango, rangosPedidos } from "../lib/rangos";
 import Badge from "../components/Badge";
 import NuevoPedido from "../components/NuevoPedido";
 import Panel from "../components/Panel";
@@ -12,6 +13,7 @@ import { styles } from "../styles/Pedidos.styles";
 
 type Pedido = {
     pedido_id: string;
+    numero: number;
     cliente: string;
     fecha_entrega: string | null;
     estado_pedido: string;
@@ -38,19 +40,23 @@ export default function PedidosScreen() {
     const [detalle, setDetalle] = useState<Record<string, string>>({});
     const [busqueda, setBusqueda] = useState("");
     const [filtro, setFiltro] = useState("todos");
+    const [rango, setRango] = useState("todas");
 
     const [panelAbierto, setPanelAbierto] = useState(false);
     const [editando, setEditando] = useState("");
     const [abierto, setAbierto] = useState("");
     const [monto, setMonto] = useState("");
+    const [confirmando, setConfirmando] = useState("");
     const [error, setError] = useState("");
 
     async function cargar() {
         const [res, items, prods] = await Promise.all([
             supabase
                 .from("pedidos_resumen")
-                .select("pedido_id, cliente, fecha_entrega, estado_pedido, estado_pago, total, abono, saldo, descuento")
-                .order("fecha_entrega", { ascending: false }),
+                .select(
+                    "pedido_id, numero, cliente, fecha_entrega, estado_pedido, estado_pago, total, abono, saldo, descuento"
+                )
+                .order("numero", { ascending: false }),
             supabase.from("pedido_items").select("pedido_id, producto_id, cantidad"),
             supabase.from("productos").select("id, nombre"),
         ]);
@@ -103,6 +109,22 @@ export default function PedidosScreen() {
         cargar();
     }
 
+    async function revertir(id: string) {
+        setError("");
+        await supabase
+            .from("pedido_items")
+            .update({ costo_unitario: null })
+            .eq("pedido_id", id);
+
+        const { error: fallo } = await supabase
+            .from("pedidos")
+            .update({ estado_pedido: "agendado" })
+            .eq("id", id);
+        if (fallo) setError("No se pudo revertir la entrega");
+        setConfirmando("");
+        cargar();
+    }
+
     async function cancelar(id: string) {
         setError("");
         const { error: fallo } = await supabase
@@ -146,35 +168,47 @@ export default function PedidosScreen() {
         cargar();
     }
 
-    const contar = (estado: string) =>
-        pedidos.filter((p) => p.estado_pedido === estado).length;
+    const texto = limpiar(busqueda);
+    const coincideBusqueda = (p: Pedido) =>
+        limpiar(p.cliente).includes(texto) ||
+        limpiar(detalle[p.pedido_id] ?? "").includes(texto) ||
+        String(p.numero).includes(texto.replace("#", ""));
 
-    const opcionesFiltro = [
-        { valor: "todos", etiqueta: "Todos", cantidad: pedidos.length },
+    const dentroDelRango = pedidos.filter(
+        (p) => coincideBusqueda(p) && enRango(p.fecha_entrega, rango)
+    );
+    const contar = (estado: string) =>
+        dentroDelRango.filter((p) => p.estado_pedido === estado).length;
+
+    const opcionesEstado = [
+        { valor: "todos", etiqueta: "Todos", cantidad: dentroDelRango.length },
         { valor: "agendado", etiqueta: "Agendado", cantidad: contar("agendado") },
         { valor: "entregado", etiqueta: "Entregado", cantidad: contar("entregado") },
         { valor: "cancelado", etiqueta: "Cancelado", cantidad: contar("cancelado") },
     ];
 
-    const visibles = pedidos.filter((p) => {
-        const texto = limpiar(busqueda);
-        const coincide =
-            limpiar(p.cliente).includes(texto) ||
-            limpiar(detalle[p.pedido_id] ?? "").includes(texto);
-        if (!coincide) return false;
-        return filtro === "todos" || p.estado_pedido === filtro;
-    });
+    const opcionesRango = rangosPedidos.map((r) => ({
+        ...r,
+        cantidad: pedidos.filter(
+            (p) => coincideBusqueda(p) && enRango(p.fecha_entrega, r.valor)
+        ).length,
+    }));
+
+    const visibles = dentroDelRango.filter(
+        (p) => filtro === "todos" || p.estado_pedido === filtro
+    );
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
             <BarraAcciones
                 busqueda={busqueda}
                 onBusqueda={setBusqueda}
-                placeholder="Buscar cliente o producto..."
+                placeholder="Buscar cliente, producto o #número..."
                 textoBoton="Nuevo"
                 onBoton={() => setPanelAbierto(true)}
             />
-            <Filtros opciones={opcionesFiltro} valor={filtro} onCambio={setFiltro} />
+            <Filtros opciones={opcionesRango} valor={rango} onCambio={setRango} />
+            <Filtros opciones={opcionesEstado} valor={filtro} onCambio={setFiltro} />
 
             {error ? <Text style={comunes.error}>{error}</Text> : null}
 
@@ -188,10 +222,13 @@ export default function PedidosScreen() {
                                 onPress={() => {
                                     setAbierto(abierto === p.pedido_id ? "" : p.pedido_id);
                                     setMonto("");
+                                    setConfirmando("");
                                 }}
                             >
                                 <View style={styles.filaSuperior}>
-                                    <Text style={styles.cliente}>{p.cliente}</Text>
+                                    <Text style={styles.cliente}>
+                                        {numeroPedido(p.numero)} · {p.cliente}
+                                    </Text>
                                     <Text style={styles.total}>{pesos(p.total)}</Text>
                                 </View>
                                 <Text style={styles.detalle}>{detalle[p.pedido_id] ?? ""}</Text>
@@ -200,10 +237,12 @@ export default function PedidosScreen() {
                                     {Number(p.saldo) > 0 && p.estado_pedido !== "cancelado"
                                         ? ` · Debe ${pesos(p.saldo)}`
                                         : ""}
-                                    {Number(p.descuento) > 0 ? (
-                                        <Text style={styles.detalle}>Incluye promoción: −{pesos(p.descuento)}</Text>
-                                    ) : null}
                                 </Text>
+                                {Number(p.descuento) > 0 ? (
+                                    <Text style={styles.detalle}>
+                                        Incluye promoción: −{pesos(p.descuento)}
+                                    </Text>
+                                ) : null}
                                 <View style={styles.badges}>
                                     <Badge
                                         texto={p.estado_pedido}
@@ -238,9 +277,10 @@ export default function PedidosScreen() {
 
                                     {Number(p.saldo) > 0 ? (
                                         <View>
-                                            <TextInput placeholderTextColor="#A8A29E"
+                                            <TextInput
                                                 style={comunes.input}
                                                 placeholder="Monto del abono"
+                                                placeholderTextColor="#A8A29E"
                                                 value={monto}
                                                 onChangeText={setMonto}
                                                 keyboardType="numeric"
@@ -261,6 +301,38 @@ export default function PedidosScreen() {
                                         >
                                             <Text style={comunes.botonContornoTexto}>Cancelar pedido</Text>
                                         </Pressable>
+                                    ) : null}
+
+                                    {p.estado_pedido === "entregado" ? (
+                                        confirmando === p.pedido_id ? (
+                                            <View>
+                                                <Text style={styles.aviso}>
+                                                    El pedido volverá a "agendado": lo que gastó regresa al
+                                                    inventario y deja de contar como venta. ¿Seguro?
+                                                </Text>
+                                                <View style={styles.botones}>
+                                                    <Pressable
+                                                        style={comunes.botonPeligro}
+                                                        onPress={() => revertir(p.pedido_id)}
+                                                    >
+                                                        <Text style={comunes.botonPeligroTexto}>Sí, revertir</Text>
+                                                    </Pressable>
+                                                    <Pressable
+                                                        style={comunes.botonNeutro}
+                                                        onPress={() => setConfirmando("")}
+                                                    >
+                                                        <Text style={comunes.botonNeutroTexto}>No</Text>
+                                                    </Pressable>
+                                                </View>
+                                            </View>
+                                        ) : (
+                                            <Pressable
+                                                style={comunes.botonContorno}
+                                                onPress={() => setConfirmando(p.pedido_id)}
+                                            >
+                                                <Text style={comunes.botonContornoTexto}>Revertir entrega</Text>
+                                            </Pressable>
+                                        )
                                     ) : null}
                                 </View>
                             ) : null}

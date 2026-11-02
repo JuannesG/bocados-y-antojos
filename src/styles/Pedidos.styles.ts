@@ -23,4 +23,6 @@ export const styles = StyleSheet.create({
         borderTopColor: colores.borde,
         paddingTop: 12,
     },
+    aviso: { fontSize: 13, color: colores.textoSuave, marginTop: 14 },
+    botones: { flexDirection: "row", gap: 10, marginTop: 10 },
 });
