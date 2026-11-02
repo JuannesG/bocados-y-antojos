@@ -5,7 +5,7 @@ import { pesos, limpiar } from "../lib/formato";
 import Badge from "../components/Badge";
 import Panel from "../components/Panel";
 import BarraAcciones from "../components/BarraAcciones";
-import Filtros from "../components/Filtros";
+import BarraFiltros from "../components/BarraFiltros";
 import NuevoProducto from "../components/NuevoProducto";
 import { comunes } from "../styles/comunes";
 import { styles } from "../styles/Productos.styles";
@@ -108,7 +108,18 @@ export default function ProductosScreen() {
                 textoBoton="Nuevo"
                 onBoton={() => setPanelAbierto(true)}
             />
-            <Filtros opciones={opcionesFiltro} valor={filtro} onCambio={setFiltro} />
+            <BarraFiltros
+                grupos={[
+                    {
+                        clave: "tipo",
+                        titulo: "Tipo de producto",
+                        opciones: opcionesFiltro,
+                        valor: filtro,
+                        porDefecto: "todos",
+                        onCambio: setFiltro,
+                    },
+                ]}
+            />
 
             {error ? <Text style={comunes.error}>{error}</Text> : null}
 

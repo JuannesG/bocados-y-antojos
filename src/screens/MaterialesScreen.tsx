@@ -5,7 +5,7 @@ import { limpiar } from "../lib/formato";
 import Badge from "../components/Badge";
 import Panel from "../components/Panel";
 import BarraAcciones from "../components/BarraAcciones";
-import Filtros from "../components/Filtros";
+import BarraFiltros from "../components/BarraFiltros";
 import { comunes } from "../styles/comunes";
 import { styles } from "../styles/Materiales.styles";
 
@@ -189,7 +189,18 @@ export default function MaterialesScreen() {
                 textoBoton="Nuevo"
                 onBoton={() => setPanelAbierto(true)}
             />
-            <Filtros opciones={opcionesFiltro} valor={filtro} onCambio={setFiltro} />
+            <BarraFiltros
+                grupos={[
+                    {
+                        clave: "estado",
+                        titulo: "Estado del stock",
+                        opciones: opcionesFiltro,
+                        valor: filtro,
+                        porDefecto: "todos",
+                        onCambio: setFiltro,
+                    },
+                ]}
+            />
 
             {error && !panelAbierto ? <Text style={comunes.error}>{error}</Text> : null}
 

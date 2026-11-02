@@ -7,7 +7,7 @@ import Badge from "../components/Badge";
 import NuevoPedido from "../components/NuevoPedido";
 import Panel from "../components/Panel";
 import BarraAcciones from "../components/BarraAcciones";
-import Filtros from "../components/Filtros";
+import BarraFiltros from "../components/BarraFiltros";
 import { comunes } from "../styles/comunes";
 import { styles } from "../styles/Pedidos.styles";
 
@@ -207,8 +207,26 @@ export default function PedidosScreen() {
                 textoBoton="Nuevo"
                 onBoton={() => setPanelAbierto(true)}
             />
-            <Filtros opciones={opcionesRango} valor={rango} onCambio={setRango} />
-            <Filtros opciones={opcionesEstado} valor={filtro} onCambio={setFiltro} />
+            <BarraFiltros
+                grupos={[
+                    {
+                        clave: "fecha",
+                        titulo: "Fecha de entrega",
+                        opciones: opcionesRango,
+                        valor: rango,
+                        porDefecto: "todas",
+                        onCambio: setRango,
+                    },
+                    {
+                        clave: "estado",
+                        titulo: "Estado del pedido",
+                        opciones: opcionesEstado,
+                        valor: filtro,
+                        porDefecto: "todos",
+                        onCambio: setFiltro,
+                    },
+                ]}
+            />
 
             {error ? <Text style={comunes.error}>{error}</Text> : null}
 

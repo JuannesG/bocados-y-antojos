@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabase";
 import { pesos, limpiar, inicioMes } from "../lib/formato";
 import Panel from "../components/Panel";
 import BarraAcciones from "../components/BarraAcciones";
-import Filtros from "../components/Filtros";
+import BarraFiltros from "../components/BarraFiltros";
 import NuevaCompra from "../components/NuevaCompra";
 import { comunes } from "../styles/comunes";
 import { styles } from "../styles/Compras.styles";
@@ -112,7 +112,18 @@ export default function ComprasScreen() {
                 textoBoton="Nueva"
                 onBoton={() => setPanelAbierto(true)}
             />
-            <Filtros opciones={opcionesFiltro} valor={filtro} onCambio={setFiltro} />
+            <BarraFiltros
+                grupos={[
+                    {
+                        clave: "fecha",
+                        titulo: "Fecha de la compra",
+                        opciones: opcionesFiltro,
+                        valor: filtro,
+                        porDefecto: "todas",
+                        onCambio: setFiltro,
+                    },
+                ]}
+            />
 
             {error ? <Text style={comunes.error}>{error}</Text> : null}
 

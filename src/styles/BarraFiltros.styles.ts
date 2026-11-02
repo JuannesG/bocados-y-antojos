@@ -1,0 +1,62 @@
+import { StyleSheet } from "react-native";
+import { colores } from "./tema";
+
+export const styles = StyleSheet.create({
+    fila: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 8,
+        marginTop: 12,
+    },
+    boton: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        backgroundColor: colores.tarjeta,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: colores.borde,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+    },
+    botonActivo: { backgroundColor: colores.texto, borderColor: colores.texto },
+    botonTexto: { color: colores.texto, fontSize: 14, fontWeight: "bold" },
+    botonTextoActivo: { color: colores.textoSobreOscuro },
+    etiqueta: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        backgroundColor: colores.acentoSuave,
+        borderRadius: 20,
+        paddingVertical: 7,
+        paddingHorizontal: 12,
+    },
+    etiquetaTexto: { color: colores.acento, fontSize: 13, fontWeight: "bold" },
+    limpiar: { color: colores.textoSuave, fontSize: 13, textDecorationLine: "underline" },
+    grupoTitulo: {
+        fontSize: 13,
+        fontWeight: "bold",
+        color: colores.textoSuave,
+        marginTop: 8,
+        marginBottom: 10,
+    },
+    opciones: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 },
+    chip: {
+        backgroundColor: colores.tarjeta,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: colores.borde,
+        paddingVertical: 9,
+        paddingHorizontal: 14,
+    },
+    chipActivo: { backgroundColor: colores.texto, borderColor: colores.texto },
+    chipTexto: { color: colores.texto, fontSize: 14 },
+    chipTextoActivo: { color: colores.textoSobreOscuro, fontWeight: "bold" },
+    restablecer: {
+        color: colores.textoSuave,
+        textAlign: "center",
+        marginTop: 14,
+        textDecorationLine: "underline",
+    },
+});
