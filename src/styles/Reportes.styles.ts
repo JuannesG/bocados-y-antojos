@@ -1,0 +1,47 @@
+import { StyleSheet } from "react-native";
+import { colores } from "./tema";
+
+export const styles = StyleSheet.create({
+    container: { padding: 16 },
+    tabs: { flexGrow: 0, borderBottomWidth: 1, borderBottomColor: colores.borde },
+    tab: { paddingVertical: 10, paddingHorizontal: 16 },
+    tabActiva: { borderBottomWidth: 2, borderBottomColor: colores.acento },
+    tabTexto: { fontSize: 15, color: colores.textoSuave },
+    tabTextoActiva: { color: colores.texto, fontWeight: "bold" },
+    selector: {
+        flexDirection: "row",
+        backgroundColor: colores.tarjeta,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colores.borde,
+        padding: 4,
+        marginVertical: 14,
+    },
+    opcion: { flex: 1, padding: 10, borderRadius: 10, alignItems: "center" },
+    opcionActiva: { backgroundColor: colores.texto },
+    opcionTexto: { color: colores.texto, fontWeight: "bold", fontSize: 13 },
+    opcionTextoActiva: { color: colores.textoSobreOscuro },
+    rejilla: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+    caja: {
+        backgroundColor: colores.tarjeta,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: colores.borde,
+        padding: 14,
+        marginTop: 10,
+    },
+    subtitulo: { fontSize: 16, fontWeight: "bold", color: colores.texto },
+    vacio: { color: colores.textoSuave, marginTop: 12 },
+    fila: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        paddingVertical: 8,
+    },
+    nombre: { fontSize: 15, color: colores.texto, flex: 1 },
+    cantidad: { fontSize: 14, fontWeight: "bold", color: colores.texto },
+    alerta: { fontSize: 15, fontWeight: "bold", color: colores.peligro },
+    detalle: { fontSize: 12, color: colores.textoSuave, marginTop: 2 },
+    producto: { marginTop: 14 },
+    filaProducto: { flexDirection: "row", justifyContent: "space-between" },
+    pista: { flexDirection: "row", height: 8, marginTop: 6 },
+});
