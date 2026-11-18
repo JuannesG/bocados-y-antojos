@@ -44,4 +44,16 @@ export const styles = StyleSheet.create({
     subtotal: { color: colores.textoSuave, fontSize: 15 },
     descuento: { color: colores.acento, fontSize: 15, fontWeight: "bold", marginTop: 4 },
     total: { marginTop: 8, color: colores.texto, fontWeight: "bold", fontSize: 18 },
+
+    precioFijo: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        backgroundColor: colores.fondoTabla,
+        borderRadius: 12,
+        padding: 14,
+        marginTop: 12,
+    },
+    precioFijoEtiqueta: { fontSize: 14, color: colores.textoSuave },
+    precioFijoValor: { fontSize: 16, fontWeight: "bold", color: colores.texto },
 });

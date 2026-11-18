@@ -6,12 +6,14 @@ import ReporteCompras from "../components/reportes/ReporteCompras";
 import ReporteInventario from "../components/reportes/ReporteInventario";
 import ReporteClientes from "../components/reportes/ReporteClientes";
 import { styles } from "../styles/Reportes.styles";
+import ReportePedidos from "../components/reportes/ReportePedidos";
 
-type Seccion = "ventas" | "compras" | "inventario" | "clientes";
+type Seccion = "ventas" | "pedidos" | "compras" | "inventario" | "clientes";
 type Periodo = "hoy" | "semana" | "mes" | "todo";
 
 const secciones: { valor: Seccion; etiqueta: string }[] = [
     { valor: "ventas", etiqueta: "Ventas" },
+    { valor: "pedidos", etiqueta: "Pedidos" },
     { valor: "compras", etiqueta: "Compras" },
     { valor: "inventario", etiqueta: "Inventario" },
     { valor: "clientes", etiqueta: "Clientes" },
@@ -55,7 +57,7 @@ export default function ReportesScreen() {
                 })}
             </ScrollView>
 
-            {seccion !== "inventario" ? (
+            {seccion !== "inventario" && seccion !== "pedidos" ? (
                 <View style={styles.selector}>
                     {periodos.map((p) => (
                         <Pressable
@@ -79,6 +81,7 @@ export default function ReportesScreen() {
             )}
 
             {seccion === "ventas" ? <ReporteVentas desde={desde} /> : null}
+            {seccion === "pedidos" ? <ReportePedidos /> : null}
             {seccion === "compras" ? <ReporteCompras desde={desde} /> : null}
             {seccion === "inventario" ? <ReporteInventario /> : null}
             {seccion === "clientes" ? <ReporteClientes desde={desde} /> : null}

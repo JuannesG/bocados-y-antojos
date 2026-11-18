@@ -33,7 +33,6 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
 
     const [productoId, setProductoId] = useState("");
     const [cantidad, setCantidad] = useState("1");
-    const [precioLinea, setPrecioLinea] = useState("");
     const [items, setItems] = useState<Item[]>([]);
 
     const [abono, setAbono] = useState("");
@@ -96,8 +95,8 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
     }, [pedidoId]);
 
     const cant = Number(cantidad.replace(",", "."));
-    const precioNum = Number(precioLinea.replace(",", "."));
     const abonoNum = Number(abono.replace(",", ".")) || 0;
+    const productoElegido = productos.find((p) => p.id === productoId);
 
     const textoCliente = limpiar(busquedaCliente);
     const clienteElegido = clientes.find((c) => c.id === clienteId);
@@ -134,15 +133,8 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
         return productos.find((p) => p.id === id)?.nombre ?? "—";
     }
 
-    function elegirProducto(id: string) {
-        setProductoId(id);
-        const p = productos.find((x) => x.id === id);
-        setPrecioLinea(p ? String(Number(p.precio_venta)) : "");
-    }
-
     function anadirProducto() {
-        const producto = productos.find((p) => p.id === productoId);
-        if (!producto) {
+        if (!productoElegido) {
             setError("Elige un producto");
             return;
         }
@@ -150,18 +142,17 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
             setError("La cantidad debe ser mayor a 0");
             return;
         }
-        if (!(precioNum > 0)) {
-            setError("El precio debe ser mayor a 0");
-            return;
-        }
         setError("");
         setItems([
             ...items,
-            { productoId: producto.id, cantidad: cant, precio: precioNum },
+            {
+                productoId: productoElegido.id,
+                cantidad: cant,
+                precio: Number(productoElegido.precio_venta),
+            },
         ]);
         setProductoId("");
         setCantidad("1");
-        setPrecioLinea("");
     }
 
     function quitarItem(posicion: number) {
@@ -347,27 +338,29 @@ export default function NuevoPedido({ pedidoId, onGuardado }: Props) {
             <Text style={styles.etiqueta}>Productos del pedido</Text>
             <Selector
                 valor={productoId}
-                onCambio={elegirProducto}
+                onCambio={setProductoId}
                 placeholder="Elige un producto"
                 opciones={productos.map((p) => ({
                     valor: p.id,
                     etiqueta: `${p.nombre} · ${pesos(p.precio_venta)}`,
                 }))}
             />
+
+            {productoElegido ? (
+                <View style={styles.precioFijo}>
+                    <Text style={styles.precioFijoEtiqueta}>Precio por unidad</Text>
+                    <Text style={styles.precioFijoValor}>
+                        {pesos(productoElegido.precio_venta)}
+                    </Text>
+                </View>
+            ) : null}
+
             <TextInput
                 style={comunes.input}
                 placeholder="Cantidad"
                 placeholderTextColor="#A8A29E"
                 value={cantidad}
                 onChangeText={setCantidad}
-                keyboardType="numeric"
-            />
-            <TextInput
-                style={comunes.input}
-                placeholder="Precio por unidad (la promoción se aplica sola)"
-                placeholderTextColor="#A8A29E"
-                value={precioLinea}
-                onChangeText={setPrecioLinea}
                 keyboardType="numeric"
             />
             <Pressable style={comunes.botonOscuro} onPress={anadirProducto}>

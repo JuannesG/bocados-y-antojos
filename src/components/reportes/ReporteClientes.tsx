@@ -17,6 +17,7 @@ export default function ReporteClientes({ desde }: Props) {
     const [totalPedidos, setTotalPedidos] = useState(0);
     const [totalVendido, setTotalVendido] = useState(0);
     const [deudas, setDeudas] = useState<Deuda[]>([]);
+    const [totalClientes, setTotalClientes] = useState(0);
 
     useEffect(() => {
         async function cargar() {
@@ -45,6 +46,8 @@ export default function ReporteClientes({ desde }: Props) {
                 porCliente[p.cliente] = c;
             });
 
+            setTotalClientes(Object.keys(porCliente).length);
+
             const deuda: Record<string, Deuda> = {};
             (pendientes.data ?? []).forEach((p) => {
                 const d = deuda[p.cliente] ?? { nombre: p.cliente, saldo: 0 };
@@ -70,7 +73,7 @@ export default function ReporteClientes({ desde }: Props) {
     return (
         <View>
             <View style={styles.rejilla}>
-                <TarjetaDato titulo="Clientes con pedidos" valor={String(mejores.length)} icono="people-outline" base={base} />
+                <TarjetaDato titulo="Clientes con pedidos" valor={String(totalClientes)} icono="people-outline" base={base} />
                 <TarjetaDato titulo="Pedidos" valor={String(totalPedidos)} icono="receipt-outline" base={base} />
                 <TarjetaDato
                     titulo="Promedio por pedido"
