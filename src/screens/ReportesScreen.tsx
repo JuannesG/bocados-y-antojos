@@ -37,6 +37,7 @@ export default function ReportesScreen() {
     const [seccion, setSeccion] = useState<Seccion>("ventas");
     const [periodo, setPeriodo] = useState<Periodo>("mes");
     const desde = desdeDe(periodo);
+    const hasta = periodo === "todo" ? "9999-12-31" : hoy();
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
@@ -57,7 +58,7 @@ export default function ReportesScreen() {
                 })}
             </ScrollView>
 
-            {seccion !== "inventario" && seccion !== "pedidos" ? (
+            {seccion !== "inventario" ? (
                 <View style={styles.selector}>
                     {periodos.map((p) => (
                         <Pressable
@@ -81,7 +82,7 @@ export default function ReportesScreen() {
             )}
 
             {seccion === "ventas" ? <ReporteVentas desde={desde} /> : null}
-            {seccion === "pedidos" ? <ReportePedidos /> : null}
+            {seccion === "pedidos" ? <ReportePedidos desde={desde} hasta={hasta} /> : null}
             {seccion === "compras" ? <ReporteCompras desde={desde} /> : null}
             {seccion === "inventario" ? <ReporteInventario /> : null}
             {seccion === "clientes" ? <ReporteClientes desde={desde} /> : null}
