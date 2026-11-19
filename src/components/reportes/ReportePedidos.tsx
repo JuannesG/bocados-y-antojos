@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { View, Text } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { supabase } from "../../lib/supabase";
-import { pesos } from "../../lib/formato";
+import { pesos, numeroPedido } from "../../lib/formato";
 import { useBase } from "../../lib/diseno";
 import TarjetaDato from "../TarjetaDato";
 import BarraFiltros from "../BarraFiltros";
@@ -18,6 +18,8 @@ type Fila = {
     cantidad: number;
     ingreso: number;
     costo: number;
+    cliente: string;
+    numero: number;
 };
 type Grupo = {
     nombre: string;
@@ -27,23 +29,34 @@ type Grupo = {
     ingreso: number;
     costo: number;
 };
+type DePedido = {
+    pedido_id: string;
+    numero: number;
+    cliente: string;
+    estado: string;
+    cantidad: number;
+};
 
 export default function ReportePedidos({ desde, hasta }: Props) {
     const base = useBase();
     const [filas, setFilas] = useState<Fila[]>([]);
     const [estado, setEstado] = useState("todos");
+    const [abierto, setAbierto] = useState("");
 
     useEffect(() => {
         async function cargar() {
             const { data } = await supabase
                 .from("pedidos_detalle")
-                .select("pedido_id, fecha, estado_pedido, producto, cantidad, ingreso, costo");
+                .select(
+                    "pedido_id, fecha, estado_pedido, producto, cantidad, ingreso, costo, cliente, numero"
+                );
             setFilas(
                 (data ?? []).map((f) => ({
                     ...f,
                     cantidad: Number(f.cantidad),
                     ingreso: Number(f.ingreso),
                     costo: Number(f.costo),
+                    numero: Number(f.numero),
                 }))
             );
         }
@@ -92,6 +105,24 @@ export default function ReportePedidos({ desde, hasta }: Props) {
     const lista = Object.values(porProducto).sort((a, b) => b.total - a.total);
     const maximo = Math.max(...lista.map((g) => g.total), 1);
 
+    function pedidosDelProducto(producto: string): DePedido[] {
+        const porPedido: Record<string, DePedido> = {};
+        mostradas
+            .filter((f) => f.producto === producto)
+            .forEach((f) => {
+                const d = porPedido[f.pedido_id] ?? {
+                    pedido_id: f.pedido_id,
+                    numero: f.numero,
+                    cliente: f.cliente,
+                    estado: f.estado_pedido,
+                    cantidad: 0,
+                };
+                d.cantidad += f.cantidad;
+                porPedido[f.pedido_id] = d;
+            });
+        return Object.values(porPedido).sort((a, b) => b.numero - a.numero);
+    }
+
     const opcionesEstado = [
         { valor: "todos", etiqueta: "Todos", cantidad: totalPedidos },
         { valor: "agendado", etiqueta: "Por entregar", cantidad: agendados },
@@ -115,7 +146,7 @@ export default function ReportePedidos({ desde, hasta }: Props) {
 
             <View style={[styles.rejilla, { marginTop: 14 }]}>
                 <TarjetaDato titulo="Ventas de estos pedidos" valor={pesos(ventas)} icono="trending-up-outline" base={base} />
-                <TarjetaDato titulo="Inversión en productos" valor={pesos(inversion)} icono="wallet-outline" base={base} />
+                <TarjetaDato titulo="Inversión en productos (proyección)" valor={pesos(inversion)} icono="wallet-outline" base={base} />
                 <TarjetaDato titulo="Ganancia proyectada" valor={pesos(ganancia)} icono="cash-outline" base={base} />
                 <TarjetaDato titulo="Unidades pedidas" valor={String(unidades)} icono="cube-outline" base={base} />
             </View>
@@ -130,19 +161,37 @@ export default function ReportePedidos({ desde, hasta }: Props) {
             <View style={styles.caja}>
                 <Text style={styles.subtitulo}>Productos pedidos</Text>
                 <Text style={styles.detalle}>
-                    Unidades pedidas de cada producto, con lo que cuestan y lo que vas a vender
+                    Toca un producto para ver los clientes que lo pidieron
                 </Text>
                 {lista.length === 0 ? (
                     <Text style={styles.vacio}>No hay pedidos con estos filtros</Text>
                 ) : (
-                    lista.map((g, i) => (
-                        <FilaBarra
-                            key={i}
-                            etiqueta={g.nombre}
-                            valor={String(g.total)}
-                            porcentaje={(g.total / maximo) * 100}
-                            detalle={`${g.agendado} por entregar · ${g.entregado} entregados · inversión ${pesos(g.costo)} · ventas ${pesos(g.ingreso)}`}
-                        />
+                    lista.map((g) => (
+                        <View key={g.nombre}>
+                            <Pressable onPress={() => setAbierto(abierto === g.nombre ? "" : g.nombre)}>
+                                <FilaBarra
+                                    etiqueta={g.nombre}
+                                    valor={String(g.total)}
+                                    porcentaje={(g.total / maximo) * 100}
+                                    detalle={`${g.agendado} por entregar · ${g.entregado} entregados · inversión ${pesos(g.costo)} · ventas ${pesos(g.ingreso)}`}
+                                />
+                            </Pressable>
+
+                            {abierto === g.nombre ? (
+                                <View style={styles.clientes}>
+                                    {pedidosDelProducto(g.nombre).map((d) => (
+                                        <View key={d.pedido_id} style={styles.filaCliente}>
+                                            <Text style={styles.nombre}>
+                                                {numeroPedido(d.numero)} · {d.cliente}
+                                            </Text>
+                                            <Text style={styles.cantidad}>
+                                                {d.cantidad} · {d.estado === "agendado" ? "por entregar" : "entregado"}
+                                            </Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            ) : null}
+                        </View>
                     ))
                 )}
             </View>

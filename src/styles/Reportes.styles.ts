@@ -44,4 +44,16 @@ export const styles = StyleSheet.create({
     producto: { marginTop: 14 },
     filaProducto: { flexDirection: "row", justifyContent: "space-between" },
     pista: { flexDirection: "row", height: 8, marginTop: 6 },
+    clientes: {
+        backgroundColor: colores.fondoTabla,
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        marginTop: 8,
+    },
+    filaCliente: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        paddingVertical: 6,
+    },
 });

@@ -41,6 +41,8 @@ function unidadesDeCompra(unidad: string): OpcionUnidad[] {
     return [];
 }
 
+const redondear = (n: number) => String(Math.round(n * 100) / 100);
+
 type Props = { onGuardado: () => void };
 
 export default function NuevaCompra({ onGuardado }: Props) {
@@ -57,7 +59,9 @@ export default function NuevaCompra({ onGuardado }: Props) {
     const [nuevaCategoria, setNuevaCategoria] = useState<"ingrediente" | "comprado">("ingrediente");
     const [unidadElegida, setUnidadElegida] = useState("");
     const [cantidad, setCantidad] = useState("");
+    const [precioUnidad, setPrecioUnidad] = useState("");
     const [totalPagado, setTotalPagado] = useState("");
+    const [editado, setEditado] = useState<"unidad" | "total">("total");
 
     const [lineas, setLineas] = useState<Linea[]>([]);
     const [error, setError] = useState("");
@@ -74,7 +78,22 @@ export default function NuevaCompra({ onGuardado }: Props) {
     }, []);
 
     const cant = Number(cantidad.replace(",", "."));
+    const pu = Number(precioUnidad.replace(",", "."));
     const pagado = Number(totalPagado.replace(",", "."));
+    const totalLinea = editado === "unidad" ? cant * pu : pagado;
+
+    const valorPrecio =
+        editado === "unidad"
+            ? precioUnidad
+            : cant > 0 && pagado > 0
+                ? redondear(pagado / cant)
+                : "";
+    const valorTotal =
+        editado === "total"
+            ? totalPagado
+            : cant > 0 && pu > 0
+                ? redondear(cant * pu)
+                : "";
 
     const texto = limpiar(busqueda);
     const materialElegido = materiales.find((m) => m.id === materialId);
@@ -122,8 +141,8 @@ export default function NuevaCompra({ onGuardado }: Props) {
             setError("Escribe la unidad del material nuevo");
             return;
         }
-        if (!(cant > 0) || !(pagado > 0)) {
-            setError("La cantidad y el total pagado deben ser mayores a 0");
+        if (!(cant > 0) || !(totalLinea > 0)) {
+            setError("La cantidad y el precio (o el total) deben ser mayores a 0");
             return;
         }
         setError("");
@@ -140,7 +159,7 @@ export default function NuevaCompra({ onGuardado }: Props) {
                 cantidad: cant,
                 unidadCompra: opcion ? opcion.valor : unidadBase,
                 equivalencia: opcion ? opcion.equivalencia : 1,
-                totalPagado: pagado,
+                totalPagado: totalLinea,
             },
         ]);
 
@@ -151,7 +170,9 @@ export default function NuevaCompra({ onGuardado }: Props) {
         setNuevaCategoria("ingrediente");
         setUnidadElegida("");
         setCantidad("");
+        setPrecioUnidad("");
         setTotalPagado("");
+        setEditado("total");
     }
 
     function quitarLinea(posicion: number) {
@@ -247,29 +268,33 @@ export default function NuevaCompra({ onGuardado }: Props) {
     return (
         <View>
             <Text style={styles.subtitulo}>Datos de la factura</Text>
-            <TextInput placeholderTextColor="#A8A29E"
+            <TextInput
                 style={comunes.input}
                 placeholder="Fecha (AAAA-MM-DD)"
+                placeholderTextColor="#A8A29E"
                 value={fecha}
                 onChangeText={setFecha}
             />
-            <TextInput placeholderTextColor="#A8A29E"
+            <TextInput
                 style={comunes.input}
                 placeholder="Lugar o proveedor (obligatorio)"
+                placeholderTextColor="#A8A29E"
                 value={proveedor}
                 onChangeText={setProveedor}
             />
-            <TextInput placeholderTextColor="#A8A29E"
+            <TextInput
                 style={comunes.input}
                 placeholder="Observación (obligatoria)"
+                placeholderTextColor="#A8A29E"
                 value={observacion}
                 onChangeText={setObservacion}
             />
 
             <Text style={styles.subtitulo}>Lo que compraste</Text>
-            <TextInput placeholderTextColor="#A8A29E"
+            <TextInput
                 style={comunes.input}
                 placeholder="Escribe lo que compraste (ej. lechuga)"
+                placeholderTextColor="#A8A29E"
                 value={busqueda}
                 onChangeText={escribir}
             />
@@ -310,9 +335,10 @@ export default function NuevaCompra({ onGuardado }: Props) {
                     <Text style={styles.nuevoAviso}>
                         Material nuevo: se creará al guardar la compra.
                     </Text>
-                    <TextInput placeholderTextColor="#A8A29E"
+                    <TextInput
                         style={comunes.input}
                         placeholder="Unidad (unidad, g, ml, lonja...)"
+                        placeholderTextColor="#A8A29E"
                         value={nuevaUnidad}
                         onChangeText={setNuevaUnidad}
                         autoCapitalize="none"
@@ -366,24 +392,43 @@ export default function NuevaCompra({ onGuardado }: Props) {
                 </View>
             ) : null}
 
-            <TextInput placeholderTextColor="#A8A29E"
+            <TextInput
                 style={comunes.input}
                 placeholder={
                     listoParaCantidad && nombreUnidad
                         ? `Cantidad (en ${nombreUnidad})`
                         : "Cantidad"
                 }
+                placeholderTextColor="#A8A29E"
                 value={cantidad}
                 onChangeText={setCantidad}
                 keyboardType="numeric"
             />
-            <TextInput placeholderTextColor="#A8A29E"
+            <TextInput
                 style={comunes.input}
-                placeholder="Total pagado por este producto"
-                value={totalPagado}
-                onChangeText={setTotalPagado}
+                placeholder={`Precio por ${nombreUnidad || "unidad"} (ej. 5500)`}
+                placeholderTextColor="#A8A29E"
+                value={valorPrecio}
+                onChangeText={(t) => {
+                    setPrecioUnidad(t);
+                    setEditado("unidad");
+                }}
                 keyboardType="numeric"
             />
+            <TextInput
+                style={comunes.input}
+                placeholder="Total pagado por este producto"
+                placeholderTextColor="#A8A29E"
+                value={valorTotal}
+                onChangeText={(t) => {
+                    setTotalPagado(t);
+                    setEditado("total");
+                }}
+                keyboardType="numeric"
+            />
+            <Text style={styles.nuevoAviso}>
+                Escribe el precio por unidad o el total: el otro se calcula solo.
+            </Text>
 
             <Pressable style={comunes.botonOscuro} onPress={agregarLinea}>
                 <Text style={comunes.botonOscuroTexto}>Agregar a la factura</Text>
